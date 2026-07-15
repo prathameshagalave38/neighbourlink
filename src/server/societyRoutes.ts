@@ -186,10 +186,23 @@ societyRouter.post("/buildings", requireAdmin, async (req: Request, res: Respons
     }
     const societyId = societies[0]._id;
 
-    // Check duplicate building code or name in this society
-    const existingCode = await db.collection("buildings").findOne({ buildingCode: buildingCode.toUpperCase().trim() });
-    if (existingCode) {
-      return res.status(400).json({ success: false, error: `A building with code '${buildingCode}' already exists.` });
+    // Check duplicate building code or name in this society (robust cross-driver check)
+    const buildingsList = await db.collection("buildings").find({});
+    const normalizedCode = buildingCode.toUpperCase().trim();
+    const normalizedName = buildingName.trim().toLowerCase();
+
+    const duplicate = buildingsList.find(b => 
+      b.buildingCode.toUpperCase().trim() === normalizedCode ||
+      b.buildingName.trim().toLowerCase() === normalizedName
+    );
+
+    if (duplicate) {
+      return res.status(400).json({ 
+        success: false, 
+        error: duplicate.buildingCode.toUpperCase().trim() === normalizedCode
+          ? `A building with code '${buildingCode}' already exists.`
+          : `A building with name '${buildingName}' already exists.`
+      });
     }
 
     const newBuilding: Omit<Building, "_id"> = {
@@ -246,11 +259,25 @@ societyRouter.put("/buildings/:id", requireAdmin, async (req: Request, res: Resp
       return res.status(404).json({ success: false, error: "Building not found." });
     }
 
-    // Check duplicate building code (excluding itself)
+    // Check duplicate building code or name (excluding itself) - robust cross-driver check
+    const buildingsList = await db.collection("buildings").find({});
     const normalizedCode = buildingCode.toUpperCase().trim();
-    const existingCode = await db.collection("buildings").findOne({ buildingCode: normalizedCode });
-    if (existingCode && existingCode._id !== id) {
-      return res.status(400).json({ success: false, error: `A building with code '${buildingCode}' already exists.` });
+    const normalizedName = buildingName.trim().toLowerCase();
+
+    const duplicate = buildingsList.find(b => 
+      b._id !== id && (
+        b.buildingCode.toUpperCase().trim() === normalizedCode ||
+        b.buildingName.trim().toLowerCase() === normalizedName
+      )
+    );
+
+    if (duplicate) {
+      return res.status(400).json({ 
+        success: false, 
+        error: duplicate.buildingCode.toUpperCase().trim() === normalizedCode
+          ? `A building with code '${buildingCode}' already exists.`
+          : `A building with name '${buildingName}' already exists.`
+      });
     }
 
     const updateFields = {
@@ -357,11 +384,10 @@ societyRouter.post("/flats", requireAdmin, async (req: Request, res: Response): 
       return res.status(400).json({ success: false, error: "Assigned Building does not exist." });
     }
 
-    // Verify duplicate flat number within same building
-    const existingFlat = await db.collection("flats").findOne({
-      buildingId,
-      flatNumber: flatNumber.trim()
-    });
+    // Verify duplicate flat number within same building (case-insensitive & trimmed)
+    const flatsList = await db.collection("flats").find({ buildingId });
+    const normalizedFlatNo = flatNumber.trim().toLowerCase();
+    const existingFlat = flatsList.find(f => f.flatNumber.trim().toLowerCase() === normalizedFlatNo);
     if (existingFlat) {
       return res.status(400).json({ success: false, error: `Flat '${flatNumber}' is already configured in building '${building.buildingName}'.` });
     }
@@ -426,19 +452,17 @@ societyRouter.put("/flats/:id", requireAdmin, async (req: Request, res: Response
       return res.status(400).json({ success: false, error: "Assigned Building does not exist." });
     }
 
-    // Verify duplicate flat number within same building (excluding itself)
-    const trimmedFlatNo = flatNumber.trim();
-    const existingFlat = await db.collection("flats").findOne({
-      buildingId,
-      flatNumber: trimmedFlatNo
-    });
-    if (existingFlat && existingFlat._id !== id) {
+    // Verify duplicate flat number within same building (case-insensitive & trimmed, excluding itself)
+    const flatsList = await db.collection("flats").find({ buildingId });
+    const normalizedFlatNo = flatNumber.trim().toLowerCase();
+    const existingFlat = flatsList.find(f => f._id !== id && f.flatNumber.trim().toLowerCase() === normalizedFlatNo);
+    if (existingFlat) {
       return res.status(400).json({ success: false, error: `Flat '${flatNumber}' is already configured in building '${building.buildingName}'.` });
     }
 
     const updateFields = {
       buildingId,
-      flatNumber: trimmedFlatNo,
+      flatNumber: flatNumber.trim(),
       floor: floorNum,
       flatType: flatType as FlatType,
       occupancyStatus: occupancyStatus as OccupancyStatus,

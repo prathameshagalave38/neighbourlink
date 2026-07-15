@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import fs from "fs";
 import path from "path";
 
@@ -111,19 +111,57 @@ export async function getDb(): Promise<DbInstanceWrapper> {
         console.log("Connected to MongoDB Atlas successfully.");
       }
       const atlasDb = client.db(dbName);
+      
+      const convertId = (query: any): any => {
+        if (!query) return query;
+        const newQuery = { ...query };
+        if (newQuery._id) {
+          if (typeof newQuery._id === "string" && ObjectId.isValid(newQuery._id)) {
+            try {
+              newQuery._id = new ObjectId(newQuery._id);
+            } catch (e) {
+              // ignore
+            }
+          } else if (typeof newQuery._id === "object") {
+            if (newQuery._id.$in && Array.isArray(newQuery._id.$in)) {
+              newQuery._id.$in = newQuery._id.$in.map((id: any) => {
+                if (typeof id === "string" && ObjectId.isValid(id)) {
+                  try {
+                    return new ObjectId(id);
+                  } catch (e) {
+                    return id;
+                  }
+                }
+                return id;
+              });
+            }
+          }
+        }
+        return newQuery;
+      };
+
+      const mapDoc = (doc: any): any => {
+        if (!doc) return doc;
+        return {
+          ...doc,
+          _id: doc._id ? doc._id.toString() : doc._id
+        };
+      };
+
       return {
         collection: (name: string): DbCollectionWrapper => {
           const col = atlasDb.collection(name);
           return {
             find: async (query: any = {}) => {
-              return col.find(query).toArray();
+              const res = await col.find(convertId(query)).toArray();
+              return res.map(mapDoc);
             },
-            findOne: async (query: any) => col.findOne(query),
+            findOne: async (query: any) => {
+              const res = await col.findOne(convertId(query));
+              return mapDoc(res);
+            },
             insertOne: async (doc: any) => {
               const cleanedDoc = { ...doc };
-              if (cleanedDoc._id === undefined) {
-                // Let MongoDB generate standard ObjectId or secure string
-              }
               const res = await col.insertOne({
                 ...cleanedDoc,
                 createdAt: cleanedDoc.createdAt || new Date().toISOString(),
@@ -140,23 +178,28 @@ export async function getDb(): Promise<DbInstanceWrapper> {
               await col.insertMany(cleanedDocs);
             },
             updateOne: async (query: any, update: any) => {
-              const res = await col.updateOne(query, update);
+              const res = await col.updateOne(convertId(query), update);
               return { modifiedCount: res.modifiedCount };
             },
             updateMany: async (query: any, update: any) => {
-              const res = await col.updateMany(query, update);
+              const res = await col.updateMany(convertId(query), update);
               return { modifiedCount: res.modifiedCount };
             },
             deleteOne: async (query: any) => {
-              const res = await col.deleteOne(query);
+              const res = await col.deleteOne(convertId(query));
               return { deletedCount: res.deletedCount };
             },
             deleteMany: async (query: any) => {
-              const res = await col.deleteMany(query);
+              const res = await col.deleteMany(convertId(query));
               return { deletedCount: res.deletedCount };
             },
-            aggregate: async (pipeline: any[]) => col.aggregate(pipeline).toArray(),
-            countDocuments: async (query: any = {}) => col.countDocuments(query),
+            aggregate: async (pipeline: any[]) => {
+              const res = await col.aggregate(pipeline).toArray();
+              return res.map(mapDoc);
+            },
+            countDocuments: async (query: any = {}) => {
+              return col.countDocuments(convertId(query));
+            },
           };
         },
         isAtlas: true,
