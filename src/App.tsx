@@ -16,6 +16,11 @@ import { AdminDashboard } from "./modules/dashboard/AdminDashboard.tsx";
 import { ResidentDashboard } from "./modules/dashboard/ResidentDashboard.tsx";
 import { SecurityDashboard } from "./modules/dashboard/SecurityDashboard.tsx";
 
+// Admin Phase 3 modules
+import { SocietySetup } from "./modules/admin/SocietySetup.tsx";
+import { BuildingsSetup } from "./modules/admin/BuildingsSetup.tsx";
+import { FlatsSetup } from "./modules/admin/FlatsSetup.tsx";
+
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -104,7 +109,7 @@ export default function App() {
             path="/admin/society" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Society Setup" phaseNeeded={3} />
+                <SocietySetup />
               </ProtectedRoute>
             } 
           />
@@ -112,7 +117,7 @@ export default function App() {
             path="/admin/buildings" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Buildings Setup" phaseNeeded={3} />
+                <BuildingsSetup />
               </ProtectedRoute>
             } 
           />
@@ -120,7 +125,7 @@ export default function App() {
             path="/admin/flats" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Flats Configuration" phaseNeeded={3} />
+                <FlatsSetup />
               </ProtectedRoute>
             } 
           />

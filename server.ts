@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { getDb } from "./src/db/client.ts";
 import { authRouter } from "./src/server/authRoutes.ts";
+import { societyRouter } from "./src/server/societyRoutes.ts";
 
 // Load environment configurations
 dotenv.config();
@@ -25,6 +26,9 @@ async function bootstrap() {
 
   // Register Auth API routes
   app.use("/api/v1/auth", authRouter);
+
+  // Register Society Setup API routes
+  app.use("/api/v1/society-management", societyRouter);
 
   // API v1 Health probe endpoint
   app.get("/api/v1/health", async (req, res) => {
