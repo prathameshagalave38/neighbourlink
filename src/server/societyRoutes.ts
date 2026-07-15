@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { getDb } from "../db/client.ts";
 import { authenticateToken } from "./authRoutes.ts";
-import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus, Resident, ResidentType } from "../types.ts";
+import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus, Resident, ResidentType, Complaint, ComplaintStatus, ComplaintPriority, ComplaintCategory, ComplaintTimelineEntry } from "../types.ts";
 
 export const societyRouter = express.Router();
 
@@ -887,5 +887,358 @@ societyRouter.delete("/residents/:id", requireAdmin, async (req: Request, res: R
   } catch (err: any) {
     console.error("DELETE Resident Error:", err);
     return res.status(500).json({ success: false, error: err.message || "Failed to delete resident." });
+  }
+});
+
+/* ==========================================================================
+   PHASE 5: COMPLAINTS / TICKETING ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/society-management/complaints
+ * @desc    Get all complaints in the society (Admin/Staff only)
+ */
+societyRouter.get("/complaints", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const complaints = await db.collection("complaints").find({});
+    
+    // Fetch all residents, buildings, flats, and users to map info
+    const residents = await db.collection("residents").find({});
+    const buildings = await db.collection("buildings").find({});
+    const flats = await db.collection("flats").find({});
+    const users = await db.collection("users").find({});
+
+    const residentsMap = new Map(residents.map(r => [r._id, r]));
+    const buildingsMap = new Map(buildings.map(b => [b._id, b]));
+    const flatsMap = new Map(flats.map(f => [f._id, f]));
+    const usersMap = new Map(users.map(u => [u._id, u]));
+
+    const populated = complaints.map(c => {
+      let residentInfo = residentsMap.get(c.residentId) || null;
+      if (!residentInfo) {
+        // Try mapping by user ID
+        const userObj = usersMap.get(c.residentId);
+        if (userObj) {
+          residentInfo = {
+            _id: userObj._id,
+            firstName: userObj.name.split(" ")[0] || userObj.name,
+            lastName: userObj.name.split(" ").slice(1).join(" ") || "",
+            email: userObj.email,
+            mobile: userObj.phone || "",
+            residentType: "Resident",
+            relationshipToOwner: "Self"
+          };
+        }
+      }
+
+      return {
+        ...c,
+        resident: residentInfo,
+        building: buildingsMap.get(c.buildingId) || null,
+        flat: flatsMap.get(c.flatId) || null,
+        assignedToUser: c.assignedTo ? usersMap.get(c.assignedTo) : null
+      };
+    });
+
+    // Sort by newest created first
+    populated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json({ success: true, complaints: populated });
+  } catch (err: any) {
+    console.error("GET Complaints Error:", err);
+    return res.status(500).json({ success: false, error: "Failed to load complaints list." });
+  }
+});
+
+/**
+ * @route   GET /api/v1/society-management/complaints/me
+ * @desc    Get currently logged in resident's complaints
+ */
+societyRouter.get("/complaints/me", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const currentUser = (req as any).user;
+
+    if (!currentUser) {
+      return res.status(401).json({ success: false, error: "Unauthorized." });
+    }
+
+    const email = currentUser.email.toLowerCase().trim();
+    let residentProfile = await db.collection("residents").findOne({ email });
+    let flatDoc = null;
+
+    if (residentProfile) {
+      flatDoc = await db.collection("flats").findOne({ _id: residentProfile.flatId });
+    } else {
+      flatDoc = await db.collection("flats").findOne({
+        $or: [
+          { ownerId: currentUser._id },
+          { tenantId: currentUser._id }
+        ]
+      });
+      if (flatDoc) {
+        residentProfile = { _id: "synthesized-" + currentUser._id };
+      }
+    }
+
+    if (!flatDoc) {
+      // User is not linked to any flat yet, so they have no complaints
+      return res.json({ success: true, complaints: [] });
+    }
+
+    // Retrieve complaints linked to this resident profile ID, or user's account ID, or this flat ID
+    const residentIds = [currentUser._id, flatDoc.ownerId, flatDoc.tenantId];
+    if (residentProfile) residentIds.push(residentProfile._id);
+
+    // Filter out nulls/undefined
+    const validResidentIds = residentIds.filter(id => !!id);
+
+    const complaints = await db.collection("complaints").find({
+      $or: [
+        { residentId: { $in: validResidentIds } },
+        { flatId: flatDoc._id }
+      ]
+    });
+
+    const buildingDoc = await db.collection("buildings").findOne({ _id: flatDoc.buildingId });
+    const users = await db.collection("users").find({});
+    const usersMap = new Map(users.map(u => [u._id, u]));
+
+    const populated = complaints.map(c => ({
+      ...c,
+      flat: flatDoc,
+      building: buildingDoc || null,
+      assignedToUser: c.assignedTo ? usersMap.get(c.assignedTo) : null
+    }));
+
+    // Sort by newest created first
+    populated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json({ success: true, complaints: populated });
+  } catch (err: any) {
+    console.error("GET My Complaints Error:", err);
+    return res.status(500).json({ success: false, error: "Failed to load your complaints list." });
+  }
+});
+
+/**
+ * @route   POST /api/v1/society-management/complaints
+ * @desc    Submit a new complaint ticket (Resident/User)
+ */
+societyRouter.post("/complaints", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { title, description, category, priority, attachments } = req.body;
+
+    if (!title || !description || !category || !priority) {
+      return res.status(400).json({ success: false, error: "Please provide all required fields: title, description, category, priority." });
+    }
+
+    const db = await getDb();
+    const currentUser = (req as any).user;
+
+    if (!currentUser) {
+      return res.status(401).json({ success: false, error: "Unauthorized." });
+    }
+
+    const email = currentUser.email.toLowerCase().trim();
+    let residentProfile = await db.collection("residents").findOne({ email });
+    let flatDoc = null;
+
+    if (residentProfile) {
+      flatDoc = await db.collection("flats").findOne({ _id: residentProfile.flatId });
+    } else {
+      flatDoc = await db.collection("flats").findOne({
+        $or: [
+          { ownerId: currentUser._id },
+          { tenantId: currentUser._id }
+        ]
+      });
+      if (flatDoc) {
+        residentProfile = {
+          _id: "synthesized-" + currentUser._id,
+          flatId: flatDoc._id,
+          buildingId: flatDoc.buildingId,
+          societyId: ""
+        };
+      }
+    }
+
+    if (!flatDoc) {
+      return res.status(400).json({
+        success: false,
+        error: "You must be associated with an active flat registry to raise a complaint ticket."
+      });
+    }
+
+    const buildingDoc = await db.collection("buildings").findOne({ _id: flatDoc.buildingId });
+    const societyId = buildingDoc ? buildingDoc.societyId : "";
+
+    // Generate unique complaint ticket number: CMP-YYYY-XXXXXX
+    const year = new Date().getFullYear();
+    let isUnique = false;
+    let ticketNumber = "";
+
+    while (!isUnique) {
+      const randomSixDigit = Math.floor(100000 + Math.random() * 900000);
+      ticketNumber = `CMP-${year}-${randomSixDigit}`;
+      const existing = await db.collection("complaints").findOne({ complaintNumber: ticketNumber });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+
+    const residentId = residentProfile ? residentProfile._id : currentUser._id;
+
+    const newComplaint: Omit<Complaint, "_id"> = {
+      complaintNumber: ticketNumber,
+      residentId,
+      flatId: flatDoc._id,
+      buildingId: flatDoc.buildingId,
+      societyId,
+      title: title.trim(),
+      description: description.trim(),
+      category: category as ComplaintCategory,
+      priority: priority as ComplaintPriority,
+      status: "Open" as ComplaintStatus,
+      assignedTo: null,
+      attachments: attachments || [],
+      timeline: [
+        {
+          status: "Open",
+          date: new Date().toISOString(),
+          notes: "Complaint registered successfully in the system database.",
+          updatedBy: currentUser.name || "Resident"
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection("complaints").insertOne(newComplaint);
+
+    return res.status(201).json({
+      success: true,
+      message: "Your complaint ticket was submitted successfully!",
+      complaintId: result.insertedId,
+      complaintNumber: ticketNumber
+    });
+  } catch (err: any) {
+    console.error("POST Complaint Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to submit complaint ticket." });
+  }
+});
+
+/**
+ * @route   PUT /api/v1/society-management/complaints/:id/status
+ * @desc    Update complaint ticket status or assign it
+ */
+societyRouter.put("/complaints/:id/status", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { status, notes, assignedTo, resolutionNotes } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, error: "Status field is required." });
+    }
+
+    const db = await getDb();
+    const currentUser = (req as any).user;
+
+    if (!currentUser) {
+      return res.status(401).json({ success: false, error: "Unauthorized." });
+    }
+
+    const complaint = await db.collection("complaints").findOne({ _id: id });
+    if (!complaint) {
+      return res.status(404).json({ success: false, error: "Complaint ticket not found." });
+    }
+
+    const isAdmin = currentUser.role === "Admin" || currentUser.role === "SuperAdmin";
+
+    // Authorization: If not admin, verify they own the ticket and only allow valid transitions
+    if (!isAdmin) {
+      const email = currentUser.email.toLowerCase().trim();
+      let residentProfile = await db.collection("residents").findOne({ email });
+      let flatDoc = null;
+
+      if (residentProfile) {
+        flatDoc = await db.collection("flats").findOne({ _id: residentProfile.flatId });
+      } else {
+        flatDoc = await db.collection("flats").findOne({
+          $or: [
+            { ownerId: currentUser._id },
+            { tenantId: currentUser._id }
+          ]
+        });
+        if (flatDoc) {
+          residentProfile = { _id: "synthesized-" + currentUser._id };
+        }
+      }
+
+      const residentId = residentProfile ? residentProfile._id : currentUser._id;
+      const isComplainant = complaint.residentId === residentId || (flatDoc && complaint.flatId === flatDoc._id);
+
+      if (!isComplainant) {
+        return res.status(403).json({ success: false, error: "You are not authorized to update this complaint ticket." });
+      }
+
+      // Valid resident-initiated transitions:
+      // - Close ticket: "Open" -> "Closed" or "Resolved" -> "Closed"
+      // - Reopen ticket: "Resolved" -> "Reopened"
+      const currentStatus = complaint.status;
+      const allowedTransitions = [
+        { from: "Open", to: "Closed" },
+        { from: "Resolved", to: "Closed" },
+        { from: "Resolved", to: "Reopened" }
+      ];
+
+      const isValidTransition = allowedTransitions.some(t => t.from === currentStatus && t.to === status);
+      if (!isValidTransition) {
+        return res.status(400).json({
+          success: false,
+          error: `As a resident, you are not allowed to transition status from '${currentStatus}' to '${status}'.`
+        });
+      }
+    }
+
+    // Build updates
+    const updates: any = {
+      status,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isAdmin) {
+      if (assignedTo !== undefined) {
+        updates.assignedTo = assignedTo || null;
+      }
+      if (resolutionNotes !== undefined) {
+        updates.resolutionNotes = resolutionNotes;
+      }
+    }
+
+    // Construct new timeline entry
+    const newTimelineEntry: ComplaintTimelineEntry = {
+      status: status as ComplaintStatus,
+      date: new Date().toISOString(),
+      notes: notes || `Ticket status transitioned to '${status}'.`,
+      updatedBy: currentUser.name || "User"
+    };
+
+    await db.collection("complaints").updateOne(
+      { _id: id },
+      {
+        $set: updates,
+        $push: { timeline: newTimelineEntry }
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: `Complaint ticket status successfully updated to '${status}'.`
+    });
+  } catch (err: any) {
+    console.error("PUT Complaint Status Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to update complaint ticket status." });
   }
 });
