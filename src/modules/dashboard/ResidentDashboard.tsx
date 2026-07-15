@@ -1,10 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { Home, Users, AlertCircle, CreditCard, Megaphone, Plus, LayoutGrid, CheckCircle } from "lucide-react";
 
 export const ResidentDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [flat, setFlat] = useState<any | null>(null);
+  const [membersCount, setMembersCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchFlatInfo = async () => {
+      try {
+        const res = await fetch("/api/v1/society-management/residents/me", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.flat) {
+          setFlat(data.flat);
+          setMembersCount(data.members?.length || 0);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchFlatInfo();
+  }, [token]);
 
   return (
     <div id="resident-dashboard-view" className="space-y-6">
@@ -18,7 +38,7 @@ export const ResidentDashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-xs font-mono rounded-lg border border-slate-700">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Flat Status: Connected</span>
+          <span>Flat Status: {flat ? `Connected` : `Pending Assignment`}</span>
         </div>
       </div>
 
@@ -30,7 +50,9 @@ export const ResidentDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">My Assigned Flat</span>
-            <span className="text-base font-bold text-gray-900 font-mono">Not Assigned</span>
+            <span className="text-base font-bold text-gray-900 font-mono">
+              {flat ? `Flat ${flat.flatNumber}` : "Not Assigned"}
+            </span>
           </div>
         </div>
 
@@ -39,8 +61,8 @@ export const ResidentDashboard: React.FC = () => {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Active Visitors Today</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Co-Residents Registered</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{membersCount}</span>
           </div>
         </div>
 

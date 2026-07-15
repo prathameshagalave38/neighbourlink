@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { getDb } from "../db/client.ts";
 import { authenticateToken } from "./authRoutes.ts";
-import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus } from "../types.ts";
+import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus, Resident, ResidentType } from "../types.ts";
 
 export const societyRouter = express.Router();
 
@@ -504,5 +504,388 @@ societyRouter.delete("/flats/:id", requireAdmin, async (req: Request, res: Respo
   } catch (err: any) {
     console.error("DELETE Flat Error:", err);
     return res.status(500).json({ success: false, error: err.message || "Failed to delete flat configuration." });
+  }
+});
+
+/**
+ * @route   GET /api/v1/society-management/residents
+ * @desc    Get all residents with populated buildings and flats
+ */
+societyRouter.get("/residents", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const residents = await db.collection("residents").find({});
+    const buildings = await db.collection("buildings").find({});
+    const flats = await db.collection("flats").find({});
+
+    const buildingsMap = new Map(buildings.map(b => [b._id, b]));
+    const flatsMap = new Map(flats.map(f => [f._id, f]));
+
+    const populated = residents.map(r => ({
+      ...r,
+      building: buildingsMap.get(r.buildingId) || null,
+      flat: flatsMap.get(r.flatId) || null
+    }));
+
+    return res.json({ success: true, residents: populated });
+  } catch (err: any) {
+    console.error("GET Residents Error:", err);
+    return res.status(500).json({ success: false, error: "Failed to load residents list." });
+  }
+});
+
+/**
+ * @route   GET /api/v1/society-management/residents/me
+ * @desc    Get currently logged in resident's flat, building, and household members
+ */
+societyRouter.get("/residents/me", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const currentUser = (req as any).user;
+
+    if (!currentUser) {
+      return res.status(401).json({ success: false, error: "Unauthorized." });
+    }
+
+    // Find resident profile matching current user email
+    const email = currentUser.email.toLowerCase().trim();
+    let residentProfile = await db.collection("residents").findOne({ email });
+
+    // If not found by email, see if any flat has ownerId or tenantId as user ID or email match
+    let flatDoc = null;
+    if (residentProfile) {
+      flatDoc = await db.collection("flats").findOne({ _id: residentProfile.flatId });
+    } else {
+      flatDoc = await db.collection("flats").findOne({
+        $or: [
+          { ownerId: currentUser._id },
+          { tenantId: currentUser._id }
+        ]
+      });
+
+      if (flatDoc) {
+        // Synthesize a resident profile for this user as Self
+        const isOwner = flatDoc.ownerId === currentUser._id;
+        residentProfile = {
+          _id: "synthesized-" + currentUser._id,
+          flatId: flatDoc._id,
+          buildingId: flatDoc.buildingId,
+          societyId: "", 
+          residentType: isOwner ? "Owner" : "Tenant",
+          relationshipToOwner: "Self",
+          firstName: currentUser.name.split(" ")[0] || currentUser.name,
+          lastName: currentUser.name.split(" ").slice(1).join(" ") || "",
+          gender: "Male",
+          dob: "1990-01-01",
+          mobile: currentUser.phone || "",
+          email: currentUser.email,
+          status: "Active",
+          createdAt: currentUser.createdAt,
+          updatedAt: currentUser.updatedAt
+        };
+      }
+    }
+
+    if (!flatDoc) {
+      return res.json({
+        success: true,
+        resident: null,
+        flat: null,
+        building: null,
+        members: []
+      });
+    }
+
+    // Fetch building and members
+    const buildingDoc = await db.collection("buildings").findOne({ _id: flatDoc.buildingId });
+    const membersList = await db.collection("residents").find({ flatId: flatDoc._id });
+
+    // Populate building name on flat for convenience
+    const flatWithBuilding = {
+      ...flatDoc,
+      building: buildingDoc || null
+    };
+
+    return res.json({
+      success: true,
+      resident: residentProfile,
+      flat: flatWithBuilding,
+      building: buildingDoc,
+      members: membersList
+    });
+  } catch (err: any) {
+    console.error("GET My Flat Info Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to load your flat info." });
+  }
+});
+
+/**
+ * @route   POST /api/v1/society-management/residents
+ * @desc    Add a new resident
+ */
+societyRouter.post("/residents", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const {
+      flatId,
+      buildingId,
+      residentType,
+      relationshipToOwner,
+      firstName,
+      lastName,
+      gender,
+      dob,
+      mobile,
+      email,
+      bloodGroup,
+      occupation,
+      companyName,
+      emergencyContact,
+      status
+    } = req.body;
+
+    if (!flatId || !buildingId || !residentType || !firstName || !lastName || !gender || !dob || !mobile || !email) {
+      return res.status(400).json({ success: false, error: "Please provide all required fields." });
+    }
+
+    const db = await getDb();
+
+    // Verify building and flat exist
+    const building = await db.collection("buildings").findOne({ _id: buildingId });
+    if (!building) {
+      return res.status(400).json({ success: false, error: "Assigned Building does not exist." });
+    }
+
+    const flat = await db.collection("flats").findOne({ _id: flatId });
+    if (!flat) {
+      return res.status(400).json({ success: false, error: "Assigned Flat does not exist." });
+    }
+
+    // Check duplicate email in residents (case-insensitive & trimmed)
+    const normalizedEmail = email.toLowerCase().trim();
+    const residentsList = await db.collection("residents").find({});
+    const existingResident = residentsList.find(r => r.email.toLowerCase().trim() === normalizedEmail);
+    if (existingResident) {
+      return res.status(400).json({ success: false, error: `A resident with email '${email}' is already registered.` });
+    }
+
+    const newResident: Omit<Resident, "_id"> = {
+      flatId,
+      buildingId,
+      societyId: building.societyId,
+      residentType,
+      relationshipToOwner: relationshipToOwner || "Self",
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      gender,
+      dob,
+      mobile: mobile.trim(),
+      email: normalizedEmail,
+      bloodGroup: bloodGroup ? bloodGroup.trim() : undefined,
+      occupation: occupation ? occupation.trim() : undefined,
+      companyName: companyName ? companyName.trim() : undefined,
+      emergencyContact: emergencyContact || { name: "", mobile: "" },
+      status: status || "Active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection("residents").insertOne(newResident);
+    const insertedId = result.insertedId;
+
+    // Update the flat's residentIds array
+    await db.collection("flats").updateOne(
+      { _id: flatId },
+      { $addToSet: { residentIds: insertedId } }
+    );
+
+    // If the resident is Owner or Tenant, we should also update the Flat's ownerId / tenantId appropriately!
+    if (residentType === "Owner") {
+      await db.collection("flats").updateOne(
+        { _id: flatId },
+        { $set: { ownerId: insertedId, occupancyStatus: "Owner Occupied" } }
+      );
+    } else if (residentType === "Tenant") {
+      await db.collection("flats").updateOne(
+        { _id: flatId },
+        { $set: { tenantId: insertedId, occupancyStatus: "Tenant Occupied" } }
+      );
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Resident registered successfully!",
+      residentId: insertedId
+    });
+  } catch (err: any) {
+    console.error("POST Resident Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to register resident." });
+  }
+});
+
+/**
+ * @route   PUT /api/v1/society-management/residents/:id
+ * @desc    Update a resident
+ */
+societyRouter.put("/residents/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const {
+      flatId,
+      buildingId,
+      residentType,
+      relationshipToOwner,
+      firstName,
+      lastName,
+      gender,
+      dob,
+      mobile,
+      email,
+      bloodGroup,
+      occupation,
+      companyName,
+      emergencyContact,
+      status
+    } = req.body;
+
+    if (!flatId || !buildingId || !residentType || !firstName || !lastName || !gender || !dob || !mobile || !email) {
+      return res.status(400).json({ success: false, error: "Please provide all required fields." });
+    }
+
+    const db = await getDb();
+
+    // Verify resident exists
+    const resident = await db.collection("residents").findOne({ _id: id });
+    if (!resident) {
+      return res.status(404).json({ success: false, error: "Resident not found." });
+    }
+
+    // Verify building and flat exist
+    const building = await db.collection("buildings").findOne({ _id: buildingId });
+    if (!building) {
+      return res.status(400).json({ success: false, error: "Assigned Building does not exist." });
+    }
+
+    const flat = await db.collection("flats").findOne({ _id: flatId });
+    if (!flat) {
+      return res.status(400).json({ success: false, error: "Assigned Flat does not exist." });
+    }
+
+    // Check duplicate email (excluding itself)
+    const normalizedEmail = email.toLowerCase().trim();
+    const residentsList = await db.collection("residents").find({});
+    const existingResident = residentsList.find(r => r._id !== id && r.email.toLowerCase().trim() === normalizedEmail);
+    if (existingResident) {
+      return res.status(400).json({ success: false, error: `A resident with email '${email}' is already registered.` });
+    }
+
+    const oldFlatId = resident.flatId;
+
+    const updateFields = {
+      flatId,
+      buildingId,
+      residentType,
+      relationshipToOwner: relationshipToOwner || "Self",
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      gender,
+      dob,
+      mobile: mobile.trim(),
+      email: normalizedEmail,
+      bloodGroup: bloodGroup ? bloodGroup.trim() : undefined,
+      occupation: occupation ? occupation.trim() : undefined,
+      companyName: companyName ? companyName.trim() : undefined,
+      emergencyContact: emergencyContact || { name: "", mobile: "" },
+      status: status || "Active",
+      updatedAt: new Date().toISOString()
+    };
+
+    await db.collection("residents").updateOne({ _id: id }, { $set: updateFields });
+
+    // Handle flat transition if flatId changed
+    if (oldFlatId !== flatId) {
+      // Remove from old flat's residentIds
+      await db.collection("flats").updateOne(
+        { _id: oldFlatId },
+        { $pull: { residentIds: id } }
+      );
+      // Clean owner/tenant reference if they were owner/tenant in old flat
+      const oldFlat = await db.collection("flats").findOne({ _id: oldFlatId });
+      if (oldFlat) {
+        const resetFields: any = {};
+        if (oldFlat.ownerId === id) resetFields.ownerId = null;
+        if (oldFlat.tenantId === id) resetFields.tenantId = null;
+        if (Object.keys(resetFields).length > 0) {
+          await db.collection("flats").updateOne({ _id: oldFlatId }, { $set: resetFields });
+        }
+      }
+
+      // Add to new flat's residentIds
+      await db.collection("flats").updateOne(
+        { _id: flatId },
+        { $addToSet: { residentIds: id } }
+      );
+    }
+
+    // Update flat's ownerId / tenantId appropriately!
+    if (residentType === "Owner") {
+      await db.collection("flats").updateOne(
+        { _id: flatId },
+        { $set: { ownerId: id, occupancyStatus: "Owner Occupied" } }
+      );
+    } else if (residentType === "Tenant") {
+      await db.collection("flats").updateOne(
+        { _id: flatId },
+        { $set: { tenantId: id, occupancyStatus: "Tenant Occupied" } }
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: "Resident profile updated successfully!"
+    });
+  } catch (err: any) {
+    console.error("PUT Resident Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to update resident." });
+  }
+});
+
+/**
+ * @route   DELETE /api/v1/society-management/residents/:id
+ * @desc    Delete a resident
+ */
+societyRouter.delete("/residents/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+
+    // Verify resident exists
+    const resident = await db.collection("residents").findOne({ _id: id });
+    if (!resident) {
+      return res.status(404).json({ success: false, error: "Resident not found." });
+    }
+
+    // Remove from flat's residentIds and ownerId / tenantId
+    await db.collection("flats").updateOne(
+      { _id: resident.flatId },
+      { $pull: { residentIds: id } }
+    );
+
+    const flat = await db.collection("flats").findOne({ _id: resident.flatId });
+    if (flat) {
+      const resetFields: any = {};
+      if (flat.ownerId === id) resetFields.ownerId = null;
+      if (flat.tenantId === id) resetFields.tenantId = null;
+      if (Object.keys(resetFields).length > 0) {
+        await db.collection("flats").updateOne({ _id: resident.flatId }, { $set: resetFields });
+      }
+    }
+
+    // Delete the resident
+    await db.collection("residents").deleteOne({ _id: id });
+
+    return res.json({ success: true, message: "Resident deleted successfully!" });
+  } catch (err: any) {
+    console.error("DELETE Resident Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to delete resident." });
   }
 });
