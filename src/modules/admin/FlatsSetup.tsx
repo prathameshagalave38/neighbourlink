@@ -9,6 +9,7 @@ export const FlatsSetup: React.FC = () => {
   const [flats, setFlats] = useState<(Flat & { building: BuildingTypeModel | null })[]>([]);
   const [buildings, setBuildings] = useState<BuildingTypeModel[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [residents, setResidents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Filters state
@@ -43,20 +44,23 @@ export const FlatsSetup: React.FC = () => {
     try {
       const headers = { "Authorization": `Bearer ${token}` };
 
-      // Parallel fetch for flats, buildings, and users
-      const [flatsRes, buildingsRes, usersRes] = await Promise.all([
+      // Parallel fetch for flats, buildings, users, and residents
+      const [flatsRes, buildingsRes, usersRes, residentsRes] = await Promise.all([
         fetch("/api/v1/society-management/flats", { headers }),
         fetch("/api/v1/society-management/buildings", { headers }),
-        fetch("/api/v1/society-management/users", { headers })
+        fetch("/api/v1/society-management/users", { headers }),
+        fetch("/api/v1/society-management/residents", { headers })
       ]);
 
       const flatsData = await flatsRes.json();
       const buildingsData = await buildingsRes.json();
       const usersData = await usersRes.json();
+      const residentsData = await residentsRes.json();
 
       if (flatsData.success) setFlats(flatsData.flats || []);
       if (buildingsData.success) setBuildings(buildingsData.buildings || []);
       if (usersData.success) setUsers(usersData.users || []);
+      if (residentsData.success) setResidents(residentsData.residents || []);
 
       // Autofill first building if available
       if (buildingsData.success && buildingsData.buildings?.length > 0) {
@@ -530,8 +534,17 @@ export const FlatsSetup: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-150 text-sm text-gray-700">
                 {filteredFlats.map((f) => {
-                  const flatOwner = users.find(u => u._id === f.ownerId);
-                  const flatTenant = users.find(u => u._id === f.tenantId);
+                  const flatOwner = users.find(u => u._id === f.ownerId) || residents.find(r => r._id === f.ownerId);
+                  const flatTenant = users.find(u => u._id === f.tenantId) || residents.find(r => r._id === f.tenantId);
+                  
+                  const ownerName = flatOwner 
+                    ? (flatOwner.name || `${flatOwner.firstName || ""} ${flatOwner.lastName || ""}`.trim())
+                    : null;
+                  
+                  const tenantName = flatTenant 
+                    ? (flatTenant.name || `${flatTenant.firstName || ""} ${flatTenant.lastName || ""}`.trim())
+                    : null;
+
                   return (
                     <tr key={f._id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
@@ -566,14 +579,14 @@ export const FlatsSetup: React.FC = () => {
                             {f.occupancyStatus}
                           </span>
                           {/* Map names of Owner/Tenant */}
-                          {flatOwner && (
+                          {ownerName && (
                             <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                              <User className="w-3 h-3 text-slate-400" /> Owner: <strong className="text-gray-700">{flatOwner.name}</strong>
+                              <User className="w-3 h-3 text-slate-400" /> Owner: <strong className="text-gray-700">{ownerName}</strong>
                             </span>
                           )}
-                          {flatTenant && (
+                          {tenantName && (
                             <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                              <User className="w-3 h-3 text-slate-400" /> Tenant: <strong className="text-gray-700">{flatTenant.name}</strong>
+                              <User className="w-3 h-3 text-slate-400" /> Tenant: <strong className="text-gray-700">{tenantName}</strong>
                             </span>
                           )}
                         </div>
