@@ -97,7 +97,11 @@ export async function getDb(): Promise<DbInstanceWrapper> {
   const isValidUri = uri &&
     (uri.startsWith("mongodb://") || uri.startsWith("mongodb+srv://")) &&
     !uri.includes("user:pass") &&
-    !uri.includes("cluster.mongodb.net");
+    !uri.includes("cluster.mongodb.net") &&
+    uri !== "undefined" &&
+    uri !== "null" &&
+    !uri.includes("<") &&
+    !uri.includes("placeholder");
 
   if (isValidUri) {
     try {
@@ -157,8 +161,8 @@ export async function getDb(): Promise<DbInstanceWrapper> {
         },
         isAtlas: true,
       };
-    } catch (err) {
-      console.error("MongoDB Atlas connection failed. Falling back to local persistent store.", err);
+    } catch (err: any) {
+      console.log(`Database fallback activated: MongoDB Atlas connection was unconfigured or unsuccessful (Message: ${err?.message || err}).`);
     }
   }
 
