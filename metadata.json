@@ -1,0 +1,6 @@
+{
+  "name": "NeighbourLink",
+  "description": "A comprehensive Residential Community Management Platform designed to streamline communication and operations for housing societies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
