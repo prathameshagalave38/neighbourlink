@@ -29,6 +29,12 @@ import { MyFlatInfo } from "./modules/resident/MyFlatInfo.tsx";
 import { ComplaintsReview } from "./modules/admin/ComplaintsReview.tsx";
 import { MyComplaints } from "./modules/resident/MyComplaints.tsx";
 
+// Phase 6 modules
+import { ParkingAllocations } from "./modules/admin/ParkingAllocations.tsx";
+import { MyExpectedVisitors } from "./modules/resident/MyExpectedVisitors.tsx";
+import { SecurityVisitorGateLogs } from "./modules/security/SecurityVisitorGateLogs.tsx";
+import { GateVehicleVerification } from "./modules/security/GateVehicleVerification.tsx";
+
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -173,7 +179,7 @@ export default function App() {
             path="/admin/parking" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Parking Allocations" phaseNeeded={6} />
+                <ParkingAllocations />
               </ProtectedRoute>
             } 
           />
@@ -199,7 +205,7 @@ export default function App() {
             path="/resident/visitors" 
             element={
               <ProtectedRoute allowedRoles={["Resident"]}>
-                <PlaceholderPage title="My Expected Visitors" phaseNeeded={6} />
+                <MyExpectedVisitors />
               </ProtectedRoute>
             } 
           />
@@ -233,7 +239,7 @@ export default function App() {
             path="/security/visitors" 
             element={
               <ProtectedRoute allowedRoles={["Security"]}>
-                <PlaceholderPage title="Security Visitor Gate Logs" phaseNeeded={6} />
+                <SecurityVisitorGateLogs />
               </ProtectedRoute>
             } 
           />
@@ -241,7 +247,7 @@ export default function App() {
             path="/security/parking" 
             element={
               <ProtectedRoute allowedRoles={["Security"]}>
-                <PlaceholderPage title="Gate Vehicle Verification" phaseNeeded={6} />
+                <GateVehicleVerification />
               </ProtectedRoute>
             } 
           />
