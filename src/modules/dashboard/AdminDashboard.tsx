@@ -4,7 +4,54 @@ import { useAuth } from "../../context/AuthContext.tsx";
 import { Building2, Users, AlertCircle, CreditCard, Megaphone, Plus, LayoutGrid, CheckCircle } from "lucide-react";
 
 export const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [stats, setStats] = React.useState({
+    buildings: 0,
+    residents: 0,
+    complaints: 0,
+    outstandingBills: 0,
+    unpaidAmount: 0
+  });
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const headers = { "Authorization": `Bearer ${token}` };
+        
+        // Fetch buildings
+        const bRes = await fetch("/api/v1/society-management/buildings", { headers });
+        const bData = await bRes.json();
+        
+        // Fetch residents
+        const rRes = await fetch("/api/v1/society-management/residents", { headers });
+        const rData = await rRes.json();
+        
+        // Fetch complaints
+        const cRes = await fetch("/api/v1/society-management/complaints", { headers });
+        const cData = await cRes.json();
+        
+        // Fetch maintenance bills
+        const mRes = await fetch("/api/v1/society-management/maintenance-bills", { headers });
+        const mData = await mRes.json();
+
+        const unpaid = (mData.bills || []).filter((b: any) => b.status !== "Paid");
+        const unpaidSum = unpaid.reduce((sum: number, b: any) => sum + (b.outstandingAmount || 0), 0);
+
+        setStats({
+          buildings: bData.buildings?.length || 0,
+          residents: rData.residents?.length || 0,
+          complaints: (cData.complaints || []).filter((c: any) => c.status !== "Resolved").length,
+          outstandingBills: unpaid.length,
+          unpaidAmount: unpaidSum
+        });
+      } catch (err) {
+        console.warn("Could not sync complete dashboard counters:", err);
+      }
+    };
+    if (token) {
+      fetchStats();
+    }
+  }, [token]);
 
   return (
     <div id="admin-dashboard-view" className="space-y-6">
@@ -30,7 +77,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Buildings</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{stats.buildings}</span>
           </div>
         </div>
 
@@ -40,7 +87,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Total Residents</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{stats.residents}</span>
           </div>
         </div>
 
@@ -50,7 +97,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending Tickets</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{stats.complaints}</span>
           </div>
         </div>
 
@@ -60,7 +107,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Pending Billing</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{stats.outstandingBills}</span>
           </div>
         </div>
       </div>

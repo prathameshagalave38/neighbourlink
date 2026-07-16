@@ -35,6 +35,11 @@ import { MyExpectedVisitors } from "./modules/resident/MyExpectedVisitors.tsx";
 import { SecurityVisitorGateLogs } from "./modules/security/SecurityVisitorGateLogs.tsx";
 import { GateVehicleVerification } from "./modules/security/GateVehicleVerification.tsx";
 
+// Phase 7 modules
+import { MaintenancePlans } from "./modules/admin/MaintenancePlans.tsx";
+import { BillingGenerator } from "./modules/admin/BillingGenerator.tsx";
+import { MyMaintenanceBills } from "./modules/resident/MyMaintenanceBills.tsx";
+
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -163,7 +168,7 @@ export default function App() {
             path="/admin/maintenance-plans" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Maintenance Plans" phaseNeeded={7} />
+                <MaintenancePlans />
               </ProtectedRoute>
             } 
           />
@@ -171,7 +176,7 @@ export default function App() {
             path="/admin/billing" 
             element={
               <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
-                <PlaceholderPage title="Society Billing Generator" phaseNeeded={7} />
+                <BillingGenerator />
               </ProtectedRoute>
             } 
           />
@@ -221,7 +226,7 @@ export default function App() {
             path="/resident/bills" 
             element={
               <ProtectedRoute allowedRoles={["Resident"]}>
-                <PlaceholderPage title="My Maintenance Bills" phaseNeeded={7} />
+                <MyMaintenanceBills />
               </ProtectedRoute>
             } 
           />

@@ -175,8 +175,21 @@ export const MyExpectedVisitors: React.FC = () => {
 
   const handleShareOnWhatsApp = (visitor: any) => {
     const text = `Hi ${visitor.visitorName}, I have pre-registered your entry at NeighbourLink Society. Please show this secure 6-digit gate passcode to the Security Guard for seamless check-in:\n🔑 Passcode: ${visitor.passcode}\n📅 Date: ${visitor.expectedDate}\n🕒 Time: ${visitor.expectedTime}\nLooking forward to seeing you!`;
+    
+    // Copy message to clipboard as a fallback for iframe environments
+    try {
+      navigator.clipboard.writeText(text);
+      toast.success("Invite message copied to clipboard! Ready to paste in WhatsApp.");
+    } catch (err) {
+      console.warn("Could not copy to clipboard", err);
+    }
+
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank");
+    try {
+      window.open(url, "_blank");
+    } catch (e) {
+      console.warn("Popup blocked inside iframe", e);
+    }
   };
 
   // Filters State

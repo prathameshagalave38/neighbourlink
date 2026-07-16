@@ -7,23 +7,47 @@ export const ResidentDashboard: React.FC = () => {
   const { user, token } = useAuth();
   const [flat, setFlat] = useState<any | null>(null);
   const [membersCount, setMembersCount] = useState<number>(0);
+  const [openTicketsCount, setOpenTicketsCount] = useState<number>(0);
+  const [outstandingAmount, setOutstandingAmount] = useState<number>(0);
 
   useEffect(() => {
-    const fetchFlatInfo = async () => {
+    const fetchDashboardDetails = async () => {
       try {
-        const res = await fetch("/api/v1/society-management/residents/me", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
+        const headers = { "Authorization": `Bearer ${token}` };
+
+        // 1. Fetch Flat Info
+        const res = await fetch("/api/v1/society-management/residents/me", { headers });
         const data = await res.json();
         if (data.success && data.flat) {
           setFlat(data.flat);
           setMembersCount(data.members?.length || 0);
         }
+
+        // 2. Fetch Complaints
+        const compRes = await fetch("/api/v1/society-management/complaints/me", { headers });
+        const compData = await compRes.json();
+        if (compData.success && Array.isArray(compData.complaints)) {
+          const openCount = compData.complaints.filter((c: any) => c.status !== "Resolved").length;
+          setOpenTicketsCount(openCount);
+        }
+
+        // 3. Fetch Maintenance Bills
+        const billsRes = await fetch("/api/v1/society-management/maintenance-bills", { headers });
+        const billsData = await billsRes.json();
+        if (billsData.success && Array.isArray(billsData.bills)) {
+          const unpaidSum = billsData.bills
+            .filter((b: any) => b.status !== "Paid")
+            .reduce((sum: number, b: any) => sum + (b.outstandingAmount || 0), 0);
+          setOutstandingAmount(unpaidSum);
+        }
       } catch (e) {
-        console.error(e);
+        console.error("Failed to load resident dashboard stats:", e);
       }
     };
-    fetchFlatInfo();
+
+    if (token) {
+      fetchDashboardDetails();
+    }
   }, [token]);
 
   return (
@@ -72,7 +96,7 @@ export const ResidentDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">My Open Tickets</span>
-            <span className="text-2xl font-bold text-gray-900 font-mono">0</span>
+            <span className="text-2xl font-bold text-gray-900 font-mono">{openTicketsCount}</span>
           </div>
         </div>
 
@@ -82,7 +106,9 @@ export const ResidentDashboard: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Outstanding Bill</span>
-            <span className="text-xl font-bold text-red-600 font-mono">₹0.00</span>
+            <span className={`text-xl font-bold font-mono ${outstandingAmount > 0 ? "text-red-600" : "text-emerald-600"}`}>
+              ₹{outstandingAmount.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>

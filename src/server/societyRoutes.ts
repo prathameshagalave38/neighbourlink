@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { getDb } from "../db/client.ts";
 import { authenticateToken } from "./authRoutes.ts";
-import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus, Resident, ResidentType, Complaint, ComplaintStatus, ComplaintPriority, ComplaintCategory, ComplaintTimelineEntry } from "../types.ts";
+import { Society, Building, Flat, BuildingType, FlatType, OccupancyStatus, Resident, ResidentType, Complaint, ComplaintStatus, ComplaintPriority, ComplaintCategory, ComplaintTimelineEntry, MaintenancePlan, MaintenanceBill, Payment, Receipt } from "../types.ts";
 
 export const societyRouter = express.Router();
 
@@ -14,6 +14,38 @@ function requireAdmin(req: Request, res: Response, next: any) {
     return res.status(403).json({ success: false, error: "Access denied. Admin privileges required." });
   }
   next();
+}
+
+/**
+ * Helper to check if a user has access to a maintenance bill (prevents IDOR)
+ */
+async function checkBillAccess(currentUser: any, bill: any, db: any): Promise<boolean> {
+  if (!currentUser) return false;
+  if (currentUser.role === "Admin" || currentUser.role === "SuperAdmin") {
+    return true;
+  }
+  
+  if (currentUser.role === "Resident") {
+    const email = currentUser.email.toLowerCase().trim();
+    const residentProfile = await db.collection("residents").findOne({ email });
+    let flatIds: string[] = [];
+
+    if (residentProfile) {
+      flatIds.push(residentProfile.flatId);
+    } else {
+      const flats = await db.collection("flats").find({
+        $or: [
+          { ownerId: currentUser._id },
+          { tenantId: currentUser._id }
+        ]
+      });
+      flatIds = flats.map((f: any) => f._id);
+    }
+
+    return flatIds.includes(bill.flatId);
+  }
+  
+  return false;
 }
 
 // Apply authentication token to all society routes
@@ -2121,4 +2153,524 @@ societyRouter.delete("/vehicles/:id", async (req: Request, res: Response): Promi
     return res.status(500).json({ success: false, error: "Failed to delete vehicle record." });
   }
 });
+
+
+/* ==========================================================================
+   PHASE 7: MAINTENANCE PLANS & BILLING ENDPOINTS
+   ========================================================================== */
+
+/**
+ * @route   GET /api/v1/society-management/maintenance-plans
+ * @desc    Get all maintenance plans for active society
+ */
+societyRouter.get("/maintenance-plans", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const plans = await db.collection("maintenance_plans").find({});
+    return res.json({ success: true, plans });
+  } catch (err: any) {
+    console.error("GET Maintenance Plans error:", err);
+    return res.status(500).json({ success: false, error: "Failed to retrieve maintenance plans." });
+  }
+});
+
+/**
+ * @route   POST /api/v1/society-management/maintenance-plans
+ * @desc    Create a new maintenance plan
+ */
+societyRouter.post("/maintenance-plans", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { planName, billingCycle, charges, status } = req.body;
+
+    if (!planName || !billingCycle || !Array.isArray(charges) || charges.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Please provide planName, billingCycle, and a non-empty list of charges." 
+      });
+    }
+
+    const db = await getDb();
+    
+    // Check if a plan with the same name already exists
+    const existing = await db.collection("maintenance_plans").findOne({ planName: planName.trim() });
+    if (existing) {
+      return res.status(400).json({ success: false, error: "A maintenance plan with this name already exists." });
+    }
+
+    const newPlan = {
+      planName: planName.trim(),
+      billingCycle,
+      charges: charges.map((c: any) => ({
+        name: c.name.trim(),
+        amount: Number(c.amount) || 0
+      })),
+      status: status || "Active",
+      societyId: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection("maintenance_plans").insertOne(newPlan);
+    const plan = await db.collection("maintenance_plans").findOne({ _id: result.insertedId });
+
+    return res.status(201).json({ success: true, message: "Maintenance plan created successfully!", plan });
+  } catch (err: any) {
+    console.error("POST Maintenance Plan error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create maintenance plan." });
+  }
+});
+
+/**
+ * @route   PUT /api/v1/society-management/maintenance-plans/:id
+ * @desc    Update a maintenance plan
+ */
+societyRouter.put("/maintenance-plans/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { planName, billingCycle, charges, status } = req.body;
+
+    const db = await getDb();
+    const existingPlan = await db.collection("maintenance_plans").findOne({ _id: id });
+    if (!existingPlan) {
+      return res.status(404).json({ success: false, error: "Maintenance plan not found." });
+    }
+
+    const updates: any = {
+      updatedAt: new Date().toISOString()
+    };
+
+    if (planName !== undefined) updates.planName = planName.trim();
+    if (billingCycle !== undefined) updates.billingCycle = billingCycle;
+    if (charges !== undefined && Array.isArray(charges)) {
+      updates.charges = charges.map((c: any) => ({
+        name: c.name.trim(),
+        amount: Number(c.amount) || 0
+      }));
+    }
+    if (status !== undefined) updates.status = status;
+
+    await db.collection("maintenance_plans").updateOne({ _id: id }, { $set: updates });
+    const updatedPlan = await db.collection("maintenance_plans").findOne({ _id: id });
+
+    return res.json({ success: true, message: "Maintenance plan updated successfully!", plan: updatedPlan });
+  } catch (err: any) {
+    console.error("PUT Maintenance Plan error:", err);
+    return res.status(500).json({ success: false, error: "Failed to update maintenance plan." });
+  }
+});
+
+/**
+ * @route   DELETE /api/v1/society-management/maintenance-plans/:id
+ * @desc    Delete a maintenance plan
+ */
+societyRouter.delete("/maintenance-plans/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    
+    // Check if plan has bills generated
+    const linkedBill = await db.collection("maintenance_bills").findOne({ planId: id });
+    if (linkedBill) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Cannot delete this plan as there are maintenance bills generated using it. You can mark it Inactive instead." 
+      });
+    }
+
+    const result = await db.collection("maintenance_plans").deleteOne({ _id: id });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: "Maintenance plan not found." });
+    }
+
+    return res.json({ success: true, message: "Maintenance plan deleted successfully." });
+  } catch (err: any) {
+    console.error("DELETE Maintenance Plan error:", err);
+    return res.status(500).json({ success: false, error: "Failed to delete maintenance plan." });
+  }
+});
+
+
+/**
+ * @route   GET /api/v1/society-management/maintenance-bills
+ * @desc    Get all maintenance bills (Admin sees all; Resident sees their own flat's bills)
+ */
+societyRouter.get("/maintenance-bills", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = await getDb();
+    const currentUser = (req as any).user;
+
+    if (!currentUser) {
+      return res.status(401).json({ success: false, error: "Unauthorized." });
+    }
+
+    let billsQuery: any = {};
+
+    if (currentUser.role === "Resident") {
+      const email = currentUser.email.toLowerCase().trim();
+      let residentProfile = await db.collection("residents").findOne({ email });
+      let flatIds: string[] = [];
+
+      if (residentProfile) {
+        flatIds.push(residentProfile.flatId);
+      } else {
+        const flats = await db.collection("flats").find({
+          $or: [
+            { ownerId: currentUser._id },
+            { tenantId: currentUser._id }
+          ]
+        });
+        flatIds = flats.map(f => f._id);
+      }
+
+      if (flatIds.length === 0) {
+        return res.json({ success: true, bills: [] });
+      }
+
+      billsQuery = { flatId: { $in: flatIds } };
+    }
+
+    const bills = await db.collection("maintenance_bills").find(billsQuery);
+    const flats = await db.collection("flats").find({});
+    const buildings = await db.collection("buildings").find({});
+    const residents = await db.collection("residents").find({});
+
+    const flatMap = new Map(flats.map(f => [f._id, f]));
+    const buildingMap = new Map(buildings.map(b => [b._id, b]));
+    const residentMap = new Map(residents.map(r => [r._id, r]));
+
+    const populatedBills = bills.map(bill => {
+      const fDoc = flatMap.get(bill.flatId) || null;
+      const bDoc = fDoc ? buildingMap.get(fDoc.buildingId) : null;
+      const rDoc = residentMap.get(bill.residentId) || null;
+
+      return {
+        ...bill,
+        flatNumber: fDoc ? fDoc.flatNumber : "N/A",
+        buildingName: bDoc ? bDoc.buildingName : "N/A",
+        residentName: rDoc ? `${rDoc.firstName} ${rDoc.lastName}` : "N/A"
+      };
+    });
+
+    // Sort bills by creation date desc
+    populatedBills.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json({ success: true, bills: populatedBills });
+  } catch (err: any) {
+    console.error("GET Maintenance Bills error:", err);
+    return res.status(500).json({ success: false, error: "Failed to load maintenance bills." });
+  }
+});
+
+/**
+ * @route   POST /api/v1/society-management/maintenance-bills/generate
+ * @desc    Generate maintenance bills for all flats using a maintenance plan
+ */
+societyRouter.post("/maintenance-bills/generate", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { planId, billingMonth, dueDate } = req.body;
+
+    if (!planId || !billingMonth || !dueDate) {
+      return res.status(400).json({ success: false, error: "Please select planId, billingMonth, and dueDate." });
+    }
+
+    const db = await getDb();
+
+    // 1. Fetch Plan
+    const plan = await db.collection("maintenance_plans").findOne({ _id: planId });
+    if (!plan) {
+      return res.status(404).json({ success: false, error: "Maintenance plan not found." });
+    }
+
+    // Calculate total plan amount
+    const totalAmount = plan.charges.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+
+    // 2. Fetch all Flats
+    const flats = await db.collection("flats").find({});
+    if (flats.length === 0) {
+      return res.status(400).json({ success: false, error: "No flats have been configured yet. Setup flats first." });
+    }
+
+    // 3. Fetch residents mapped to flats to link residentId
+    const residents = await db.collection("residents").find({});
+    const flatToResidentMap = new Map();
+    residents.forEach(r => {
+      if (r.flatId) {
+        flatToResidentMap.set(r.flatId, r._id);
+      }
+    });
+
+    // 4. Generate Bills
+    let generatedCount = 0;
+    const billsToInsert: any[] = [];
+
+    // Check if bills already generated for this plan + month
+    const existingBills = await db.collection("maintenance_bills").find({ billingMonth, planId });
+    if (existingBills.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Bills have already been generated for ${billingMonth} using the '${plan.planName}' plan.` 
+      });
+    }
+
+    for (const flat of flats) {
+      const randomId = Math.floor(100000 + Math.random() * 900000);
+      const yearMonth = new Date().toISOString().substring(0, 7).replace("-", "");
+      const billNumber = `BILL-${yearMonth}-${randomId}`;
+
+      const residentId = flatToResidentMap.get(flat._id) || flat.tenantId || flat.ownerId || "";
+
+      const newBill = {
+        billNumber,
+        planId,
+        residentId,
+        flatId: flat._id,
+        societyId: flat.societyId || plan.societyId || "",
+        billingMonth,
+        dueDate,
+        totalAmount,
+        paidAmount: 0,
+        outstandingAmount: totalAmount,
+        status: "Pending",
+        charges: plan.charges,
+        planName: plan.planName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      billsToInsert.push(newBill);
+      generatedCount++;
+    }
+
+    if (billsToInsert.length > 0) {
+      await db.collection("maintenance_bills").insertMany(billsToInsert);
+    }
+
+    return res.status(201).json({ 
+      success: true, 
+      message: `Successfully generated ${generatedCount} bills for '${billingMonth}'.` 
+    });
+  } catch (err: any) {
+    console.error("Generate Bills error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to generate maintenance bills." });
+  }
+});
+
+/**
+ * @route   POST /api/v1/society-management/maintenance-bills/:id/pay
+ * @desc    Submit payment for a maintenance bill
+ */
+societyRouter.post("/maintenance-bills/:id/pay", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod, amount, referenceId, notes } = req.body;
+
+    if (!paymentMethod) {
+      return res.status(400).json({ success: false, error: "Please select a payment method." });
+    }
+
+    const db = await getDb();
+    const bill = await db.collection("maintenance_bills").findOne({ _id: id });
+    if (!bill) {
+      return res.status(404).json({ success: false, error: "Maintenance bill not found." });
+    }
+
+    const currentUser = (req as any).user;
+    const hasAccess = await checkBillAccess(currentUser, bill, db);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: "Access denied. You do not have permissions to pay this bill." });
+    }
+
+    const payAmount = Number(amount) || bill.outstandingAmount;
+    if (payAmount <= 0) {
+      return res.status(400).json({ success: false, error: "Payment amount must be greater than zero." });
+    }
+
+    const isCompleted = paymentMethod === "Cash" || paymentMethod === "UPI" || paymentMethod === "Bank Transfer";
+    const paymentStatus = isCompleted ? "Completed" : "Pending";
+
+    const paymentIdNum = Math.floor(100000 + Math.random() * 900000);
+    const paymentId = `PAY-${new Date().getFullYear()}-${paymentIdNum}`;
+
+    const newPayment = {
+      paymentId,
+      billId: id,
+      residentId: bill.residentId || "",
+      amount: payAmount,
+      paymentMethod,
+      status: paymentStatus,
+      paymentDate: new Date().toISOString(),
+      referenceId: referenceId || "",
+      notes: notes || "",
+      receivedBy: currentUser?.role === "Admin" ? currentUser._id : null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const paymentResult = await db.collection("payments").insertOne(newPayment);
+
+    const newPaidAmount = bill.paidAmount + payAmount;
+    const newOutstanding = Math.max(0, bill.totalAmount - newPaidAmount);
+    let newStatus = bill.status;
+
+    if (paymentStatus === "Completed") {
+      if (newOutstanding === 0) {
+        newStatus = "Paid";
+      } else if (newPaidAmount > 0) {
+        newStatus = "Partially Paid";
+      }
+    }
+
+    await db.collection("maintenance_bills").updateOne(
+      { _id: id },
+      { 
+        $set: { 
+          paidAmount: newPaidAmount, 
+          outstandingAmount: newOutstanding, 
+          status: newStatus,
+          updatedAt: new Date().toISOString()
+        } 
+      }
+    );
+
+    let receipt = null;
+    if (paymentStatus === "Completed") {
+      const receiptIdNum = Math.floor(100000 + Math.random() * 900000);
+      const receiptNumber = `RCT-${new Date().getFullYear()}-${receiptIdNum}`;
+
+      const newReceipt = {
+        receiptNumber,
+        paymentId: paymentResult.insertedId,
+        billId: id,
+        residentId: bill.residentId || "",
+        amount: payAmount,
+        generatedAt: new Date().toISOString()
+      };
+
+      const receiptResult = await db.collection("receipts").insertOne(newReceipt);
+      receipt = await db.collection("receipts").findOne({ _id: receiptResult.insertedId });
+    }
+
+    return res.json({ 
+      success: true, 
+      message: paymentStatus === "Completed" ? "Payment successfully recorded and receipt generated!" : "Payment submitted successfully!",
+      payment: { _id: paymentResult.insertedId, ...newPayment },
+      receipt
+    });
+  } catch (err: any) {
+    console.error("Submit Payment error:", err);
+    return res.status(500).json({ success: false, error: "Failed to process payment." });
+  }
+});
+
+/**
+ * @route   GET /api/v1/society-management/maintenance-bills/:id/receipt
+ * @desc    Get populated receipt detail for a bill
+ */
+societyRouter.get("/maintenance-bills/:id/receipt", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+
+    const receipt = await db.collection("receipts").findOne({ billId: id });
+    if (!receipt) {
+      return res.status(404).json({ success: false, error: "No receipt found for this bill." });
+    }
+
+    const bill = await db.collection("maintenance_bills").findOne({ _id: id });
+    if (!bill) {
+      return res.status(404).json({ success: false, error: "Associated maintenance bill not found." });
+    }
+
+    const currentUser = (req as any).user;
+    const hasAccess = await checkBillAccess(currentUser, bill, db);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: "Access denied. You do not have permissions to view this receipt." });
+    }
+
+    const payment = await db.collection("payments").findOne({ _id: receipt.paymentId });
+    const resident = await db.collection("residents").findOne({ _id: receipt.residentId });
+    const flat = bill ? await db.collection("flats").findOne({ _id: bill.flatId }) : null;
+    const building = flat ? await db.collection("buildings").findOne({ _id: flat.buildingId }) : null;
+    const societies = await db.collection("societies").find({});
+    const society = societies[0] || null;
+
+    return res.json({
+      success: true,
+      receipt,
+      bill,
+      payment,
+      resident,
+      flat,
+      building,
+      society
+    });
+  } catch (err: any) {
+    console.error("GET Receipt error:", err);
+    return res.status(500).json({ success: false, error: "Failed to load receipt details." });
+  }
+});
+
+/**
+ * @route   PUT /api/v1/society-management/maintenance-bills/:id
+ * @desc    Update a maintenance bill
+ */
+societyRouter.put("/maintenance-bills/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { status, dueDate, outstandingAmount, paidAmount } = req.body;
+
+    const db = await getDb();
+    const existing = await db.collection("maintenance_bills").findOne({ _id: id });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Maintenance bill not found." });
+    }
+
+    const updates: any = {
+      updatedAt: new Date().toISOString()
+    };
+
+    if (status !== undefined) updates.status = status;
+    if (dueDate !== undefined) updates.dueDate = dueDate;
+    if (outstandingAmount !== undefined) updates.outstandingAmount = Number(outstandingAmount);
+    if (paidAmount !== undefined) updates.paidAmount = Number(paidAmount);
+
+    await db.collection("maintenance_bills").updateOne({ _id: id }, { $set: updates });
+    const updated = await db.collection("maintenance_bills").findOne({ _id: id });
+
+    return res.json({ success: true, message: "Maintenance bill updated successfully!", bill: updated });
+  } catch (err: any) {
+    console.error("PUT Maintenance Bill error:", err);
+    return res.status(500).json({ success: false, error: "Failed to update maintenance bill." });
+  }
+});
+
+/**
+ * @route   DELETE /api/v1/society-management/maintenance-bills/:id
+ * @desc    Delete/Cancel a maintenance bill
+ */
+societyRouter.delete("/maintenance-bills/:id", requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+
+    const payments = await db.collection("payments").find({ billId: id });
+    if (payments.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Cannot delete this bill as payments have already been recorded against it. Try cancelling it instead." 
+      });
+    }
+
+    const result = await db.collection("maintenance_bills").deleteOne({ _id: id });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: "Maintenance bill not found." });
+    }
+
+    return res.json({ success: true, message: "Maintenance bill deleted successfully." });
+  } catch (err: any) {
+    console.error("DELETE Maintenance Bill error:", err);
+    return res.status(500).json({ success: false, error: "Failed to delete maintenance bill." });
+  }
+});
+
 
