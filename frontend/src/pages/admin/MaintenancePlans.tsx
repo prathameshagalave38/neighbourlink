@@ -132,8 +132,8 @@ export const MaintenancePlans: React.FC = () => {
     setIsSaving(true);
     try {
       const url = editingId 
-        ? `/api/v1/society-management/maintenance-plans/${editingId}`
-        : "/api/v1/society-management/maintenance-plans";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-plans/${editingId}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-plans`;
       const method = editingId ? "PUT" : "POST";
 
       const res = await fetch(url, {

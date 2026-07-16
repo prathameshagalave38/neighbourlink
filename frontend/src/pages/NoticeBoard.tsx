@@ -119,8 +119,8 @@ export const NoticeBoard: React.FC = () => {
       setSubmitting(true);
       const token = localStorage.getItem("nl_token");
       const url = editingNotice 
-        ? `/api/v1/society-management/notices/${editingNotice._id}`
-        : "/api/v1/society-management/notices";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notices/${editingNotice._id}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notices`;
       const method = editingNotice ? "PUT" : "POST";
 
       const res = await fetch(url, {

@@ -150,8 +150,8 @@ export const ParkingAllocations: React.FC = () => {
       };
 
       const url = editingSlot
-        ? `/api/v1/society-management/parking/${editingSlot._id}`
-        : "/api/v1/society-management/parking";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/parking/${editingSlot._id}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/parking`;
       const method = editingSlot ? "PUT" : "POST";
 
       const res = await fetch(url, {

@@ -210,8 +210,8 @@ export const ResidentsSetup: React.FC = () => {
 
     try {
       const url = editingResidentId 
-        ? `/api/v1/society-management/residents/${editingResidentId}`
-        : "/api/v1/society-management/residents";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents/${editingResidentId}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents`;
 
       const method = editingResidentId ? "PUT" : "POST";
 
