@@ -97,8 +97,8 @@ export const BuildingsSetup: React.FC = () => {
     setIsSubmitting(true);
     try {
       const url = editingBuildingId
-        ? `/api/v1/society-management/buildings/${editingBuildingId}`
-        : "/api/v1/society-management/buildings";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings/${editingBuildingId}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`;
       
       const method = editingBuildingId ? "PUT" : "POST";
 
