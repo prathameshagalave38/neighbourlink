@@ -44,13 +44,11 @@ export const Navbar: React.FC = () => {
     <nav id="app-navbar" className="fixed top-0 z-30 flex items-center justify-between w-full h-16 px-6 border-b border-gray-200 bg-white">
       {/* Branding & Logo */}
       <Link id="nav-brand" to="/" className="flex items-center gap-2">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-900 text-white">
-          <Building2 className="w-5 h-5" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-base font-bold tracking-tight text-gray-900">NeighbourLink</span>
-          <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider leading-none">V1.0 MVP</span>
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="NeighbourLink Logo" 
+          className="h-10 w-auto mix-blend-multiply object-contain" 
+        />
       </Link>
 
       {/* Action Controls */}
