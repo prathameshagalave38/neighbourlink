@@ -140,8 +140,8 @@ export const FlatsSetup: React.FC = () => {
       };
 
       const url = editingFlatId
-        ? `/api/v1/society-management/flats/${editingFlatId}`
-        : "/api/v1/society-management/flats";
+        ? `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats/${editingFlatId}`
+        : `${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`;
       
       const method = editingFlatId ? "PUT" : "POST";
 
