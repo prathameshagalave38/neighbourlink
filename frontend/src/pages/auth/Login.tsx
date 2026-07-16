@@ -81,8 +81,8 @@ export const Login: React.FC = () => {
         <div className="p-8">
           {/* Logo & Header */}
           <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white mb-3">
-              <Building2 className="w-7 h-7" />
+            <div className="flex items-center justify-center h-[100px] mb-3">
+              <img src="/logo.png" alt="NeighbourLink Logo" className="h-full w-auto object-contain" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-gray-900">Sign in to NeighbourLink</h2>
             <p className="text-sm text-gray-500 mt-1">Residential Community Management Platform</p>
