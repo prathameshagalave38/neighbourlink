@@ -2,9 +2,9 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
-import { getDb } from "./src/db/client.ts";
-import { authRouter } from "./src/server/authRoutes.ts";
-import { societyRouter } from "./src/server/societyRoutes.ts";
+import { getDb } from "./backend/app/database/client.ts";
+import { authRouter } from "./backend/app/api/v1/auth/authRoutes.ts";
+import { societyRouter } from "./backend/app/api/v1/admin/societyRoutes.ts";
 
 // Load environment configurations
 dotenv.config();
