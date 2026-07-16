@@ -60,10 +60,10 @@ export const ParkingAllocations: React.FC = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [parkingRes, flatsRes, buildingsRes, residentsRes] = await Promise.all([
-        fetch("/api/v1/society-management/parking", { headers }),
-        fetch("/api/v1/society-management/flats", { headers }),
-        fetch("/api/v1/society-management/buildings", { headers }),
-        fetch("/api/v1/society-management/residents", { headers })
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/parking`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents`, { headers })
       ]);
 
       const parkingData = await parkingRes.json();
@@ -183,7 +183,7 @@ export const ParkingAllocations: React.FC = () => {
     if (!window.confirm("Are you sure you want to delete this parking slot?")) return;
 
     try {
-      const res = await fetch(`/api/v1/society-management/parking/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/parking/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`

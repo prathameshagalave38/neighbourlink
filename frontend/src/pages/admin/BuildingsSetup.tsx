@@ -35,7 +35,7 @@ export const BuildingsSetup: React.FC = () => {
   const fetchBuildings = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/buildings", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -133,7 +133,7 @@ export const BuildingsSetup: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`/api/v1/society-management/buildings/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings/${id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

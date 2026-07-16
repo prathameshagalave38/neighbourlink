@@ -88,7 +88,7 @@ export const BillingGenerator: React.FC = () => {
     setIsPageLoading(true);
     try {
       // 1. Fetch Plans
-      const plansRes = await fetch("/api/v1/society-management/maintenance-plans", {
+      const plansRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-plans`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const plansData = await plansRes.json();
@@ -101,7 +101,7 @@ export const BillingGenerator: React.FC = () => {
       }
 
       // 2. Fetch Bills
-      const billsRes = await fetch("/api/v1/society-management/maintenance-bills", {
+      const billsRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const billsData = await billsRes.json();
@@ -140,7 +140,7 @@ export const BillingGenerator: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      const res = await fetch("/api/v1/society-management/maintenance-bills/generate", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -177,7 +177,7 @@ export const BillingGenerator: React.FC = () => {
     if (bill.status === "Paid" || bill.paidAmount > 0) {
       setIsReceiptLoading(true);
       try {
-        const res = await fetch(`/api/v1/society-management/maintenance-bills/${bill._id}/receipt`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/${bill._id}/receipt`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
@@ -218,7 +218,7 @@ export const BillingGenerator: React.FC = () => {
 
     setIsSubmittingPayment(true);
     try {
-      const res = await fetch(`/api/v1/society-management/maintenance-bills/${paymentBill._id}/pay`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/${paymentBill._id}/pay`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export const BillingGenerator: React.FC = () => {
     if (!window.confirm("Are you sure you want to delete/cancel this generated bill? This will permanently remove the invoice from the resident's account if unpaid.")) return;
 
     try {
-      const res = await fetch(`/api/v1/society-management/maintenance-bills/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

@@ -1,0 +1,406 @@
+{
+  "users": [
+    {
+      "_id": "hu3lwlazr",
+      "name": "prathamesh",
+      "email": "digambaraaglave3162@gmail.com",
+      "passwordHash": "$2b$10$7ye3J75Q/fXfize8GLl4pu7eM9nZqybqasYX8emdr6mWOw7zkX1NS",
+      "role": "Resident",
+      "status": "Active",
+      "createdAt": "2026-07-16T05:26:22.817Z",
+      "updatedAt": "2026-07-16T05:26:22.817Z"
+    },
+    {
+      "_id": "94ww7xmxs",
+      "name": "prathamesh",
+      "email": "prathameshagalave38@gmail.com",
+      "passwordHash": "$2b$10$dPudeqhGkTX9Iv.Ke0wta..sUNyrhc/jD8LWO4L6Zef1h8J1zbtdO",
+      "role": "Admin",
+      "status": "Active",
+      "createdAt": "2026-07-16T05:30:17.623Z",
+      "updatedAt": "2026-07-16T05:30:17.623Z"
+    },
+    {
+      "_id": "um1h54obl",
+      "name": "sandesh",
+      "email": "sandeshagalave@gmail.com",
+      "passwordHash": "$2b$10$8JIOSuo3EytKQRaZ9nf08O8eUqdCvVleHQgtH.Uxrz2eauzx7oj0G",
+      "role": "Security",
+      "status": "Active",
+      "createdAt": "2026-07-16T05:53:05.224Z",
+      "updatedAt": "2026-07-16T05:53:05.224Z"
+    }
+  ],
+  "societies": [
+    {
+      "_id": "snklvclmg",
+      "name": "ganesh society",
+      "registrationNumber": "10203040",
+      "societyCode": "GSPUNE",
+      "description": "shree ganesh socity",
+      "address": "Shiv Ganesh nagar back side of shree sai agency , khandoba chawak taroda (bk) nanded",
+      "city": "Nanded",
+      "state": "Maharashtra",
+      "country": "India",
+      "pincode": "431605",
+      "email": "digambaraaglave3162@gmail.com",
+      "phone": "+918459248387",
+      "emergencyContact": "",
+      "status": "Active",
+      "updatedAt": "2026-07-16T05:32:30.464Z",
+      "createdAt": "2026-07-16T05:32:30.464Z"
+    }
+  ],
+  "buildings": [
+    {
+      "_id": "1xuy7yx06",
+      "societyId": "snklvclmg",
+      "buildingName": "gamesh A1",
+      "buildingCode": "GA1",
+      "buildingType": "Residential",
+      "floors": 8,
+      "totalFlats": 20,
+      "status": "Active",
+      "createdAt": "2026-07-16T05:33:36.617Z",
+      "updatedAt": "2026-07-16T05:33:36.617Z"
+    }
+  ],
+  "flats": [
+    {
+      "_id": "y7xslniqt",
+      "buildingId": "1xuy7yx06",
+      "flatNumber": "101",
+      "floor": 1,
+      "flatType": "2 BHK",
+      "occupancyStatus": "Owner Occupied",
+      "ownerId": "gs2e36xmg",
+      "tenantId": "hu3lwlazr",
+      "residentIds": [
+        "gs2e36xmg"
+      ],
+      "parkingIds": [
+        "p101"
+      ],
+      "createdAt": "2026-07-16T05:34:16.407Z",
+      "updatedAt": "2026-07-16T05:35:32.188Z"
+    }
+  ],
+  "residents": [
+    {
+      "_id": "gs2e36xmg",
+      "flatId": "y7xslniqt",
+      "buildingId": "1xuy7yx06",
+      "societyId": "snklvclmg",
+      "residentType": "Owner",
+      "relationshipToOwner": "Self",
+      "firstName": "Prathamesh",
+      "lastName": "Agalave",
+      "gender": "Male",
+      "dob": "2026-07-09",
+      "mobile": "+918459248387",
+      "email": "digambaraaglave3162@gmail.com",
+      "bloodGroup": "A+",
+      "occupation": "engginear",
+      "companyName": "google",
+      "emergencyContact": {
+        "name": "ganesh society",
+        "mobile": "08459248387"
+      },
+      "status": "Active",
+      "createdAt": "2026-07-16T05:35:32.169Z",
+      "updatedAt": "2026-07-16T05:35:32.169Z"
+    }
+  ],
+  "complaints": [
+    {
+      "_id": "50t3o5ccb",
+      "complaintNumber": "CMP-2026-743461",
+      "residentId": "gs2e36xmg",
+      "flatId": "y7xslniqt",
+      "buildingId": "1xuy7yx06",
+      "societyId": "snklvclmg",
+      "title": "water problem",
+      "description": "water in consistent",
+      "category": "Water Supply",
+      "priority": "Medium",
+      "status": "Open",
+      "assignedTo": null,
+      "attachments": [],
+      "timeline": [
+        {
+          "status": "Open",
+          "date": "2026-07-16T05:36:26.960Z",
+          "notes": "Complaint registered successfully in the system database.",
+          "updatedBy": "prathamesh"
+        }
+      ],
+      "createdAt": "2026-07-16T05:36:26.960Z",
+      "updatedAt": "2026-07-16T05:36:26.960Z"
+    }
+  ],
+  "visitors": [
+    {
+      "_id": "1232f1vno",
+      "visitorNumber": "VIS-2026-265040",
+      "residentId": "gs2e36xmg",
+      "flatId": "y7xslniqt",
+      "buildingId": "1xuy7yx06",
+      "societyId": "snklvclmg",
+      "visitorName": "rohan",
+      "mobile": "9307994066",
+      "visitorType": "Delivery",
+      "purpose": "",
+      "status": "Checked In",
+      "expectedDate": "2026-07-16",
+      "expectedTime": "13:30",
+      "expectedVehicleNumber": "",
+      "visitorCount": 1,
+      "passcode": "621132",
+      "checkInTime": "2026-07-16T05:53:42.720Z",
+      "checkOutTime": null,
+      "approvedBy": "gs2e36xmg",
+      "createdAt": "2026-07-16T05:52:27.480Z",
+      "updatedAt": "2026-07-16T05:53:42.721Z"
+    },
+    {
+      "_id": "aoj1prld2",
+      "visitorNumber": "VIS-2026-606835",
+      "residentId": "hu3lwlazr",
+      "flatId": "y7xslniqt",
+      "buildingId": "1xuy7yx06",
+      "societyId": "snklvclmg",
+      "visitorName": "prathamesh",
+      "mobile": "9307994066",
+      "visitorType": "Guest",
+      "purpose": "Walk-In Guest",
+      "status": "Checked In",
+      "expectedDate": "2026-07-16",
+      "expectedTime": "11:24 am",
+      "expectedVehicleNumber": "",
+      "visitorCount": 1,
+      "passcode": "",
+      "checkInTime": "2026-07-16T05:54:09.959Z",
+      "checkOutTime": null,
+      "approvedBy": "Security Guard",
+      "createdAt": "2026-07-16T05:54:09.959Z",
+      "updatedAt": "2026-07-16T05:54:09.959Z"
+    }
+  ],
+  "parking_slots": [
+    {
+      "_id": "gh0l6yaod",
+      "slotNumber": "101",
+      "parkingType": "Reserved",
+      "floor": "Ground Floor",
+      "parkingArea": "A-Block Basement",
+      "status": "Available",
+      "assignedFlatId": "y7xslniqt",
+      "assignedResidentId": "gs2e36xmg",
+      "coveredParking": true,
+      "evCharging": true,
+      "vehicleNumber": "MH26BD8499",
+      "createdAt": "2026-07-16T05:58:15.675Z",
+      "updatedAt": "2026-07-16T05:58:15.675Z"
+    }
+  ],
+  "vehicles": [],
+  "maintenance_plans": [
+    {
+      "_id": "ca323po8u",
+      "planName": "water bill",
+      "billingCycle": "Monthly",
+      "charges": [
+        {
+          "name": "General Maintenance",
+          "amount": 1450
+        }
+      ],
+      "status": "Active",
+      "societyId": "",
+      "createdAt": "2026-07-16T05:48:46.412Z",
+      "updatedAt": "2026-07-16T05:48:46.412Z"
+    }
+  ],
+  "maintenance_bills": [
+    {
+      "_id": "bill_ftuklroto",
+      "billNumber": "BILL-202607-173217",
+      "planId": "ca323po8u",
+      "residentId": "gs2e36xmg",
+      "flatId": "y7xslniqt",
+      "societyId": "",
+      "billingMonth": "July 2026",
+      "dueDate": "2026-07-31",
+      "totalAmount": 1450,
+      "paidAmount": 1450,
+      "outstandingAmount": 0,
+      "status": "Paid",
+      "charges": [
+        {
+          "name": "General Maintenance",
+          "amount": 1450
+        }
+      ],
+      "planName": "water bill",
+      "createdAt": "2026-07-16T05:49:12.056Z",
+      "updatedAt": "2026-07-16T05:49:39.017Z"
+    }
+  ],
+  "payments": [
+    {
+      "_id": "3m2tc2o9x",
+      "paymentId": "PAY-2026-554118",
+      "billId": "bill_ftuklroto",
+      "residentId": "gs2e36xmg",
+      "amount": 1450,
+      "paymentMethod": "UPI",
+      "status": "Completed",
+      "paymentDate": "2026-07-16T05:49:39.007Z",
+      "referenceId": "TXN-UPI-606831",
+      "notes": "Settled online via self-checkout portal.",
+      "receivedBy": null,
+      "createdAt": "2026-07-16T05:49:39.007Z",
+      "updatedAt": "2026-07-16T05:49:39.007Z"
+    }
+  ],
+  "receipts": [
+    {
+      "_id": "s6lgtg7xb",
+      "receiptNumber": "RCT-2026-174533",
+      "paymentId": "3m2tc2o9x",
+      "billId": "bill_ftuklroto",
+      "residentId": "gs2e36xmg",
+      "amount": 1450,
+      "generatedAt": "2026-07-16T05:49:39.022Z",
+      "createdAt": "2026-07-16T05:49:39.028Z",
+      "updatedAt": "2026-07-16T05:49:39.028Z"
+    }
+  ],
+  "notices": [
+    {
+      "_id": "notice_gk96e5eal",
+      "title": "Ganesg UTsav",
+      "description": "ganesg utsav celebration",
+      "type": "General",
+      "status": "Published",
+      "createdBy": "prathamesh",
+      "createdAt": "2026-07-16T06:00:37.130Z",
+      "updatedAt": "2026-07-16T06:00:37.130Z"
+    }
+  ],
+  "notifications": [
+    {
+      "_id": "notif_1w727cvtk",
+      "userId": "94ww7xmxs",
+      "title": "New Complaint: CMP-2026-743461",
+      "message": "Flat 101 has raised a new complaint: \"water problem\". Priority: Medium.",
+      "type": "Complaint",
+      "priority": "High",
+      "relatedModule": "Complaint",
+      "relatedId": "50t3o5ccb",
+      "status": "Read",
+      "createdAt": "2026-07-16T05:36:26.967Z",
+      "readAt": "2026-07-16T05:37:08.839Z",
+      "updatedAt": "2026-07-16T05:37:08.840Z"
+    },
+    {
+      "_id": "notif_arnphehhy",
+      "userId": "gs2e36xmg",
+      "title": "New Bill Generated: BILL-202607-173217",
+      "message": "A new maintenance bill for July 2026 has been generated for INR 1450. Due: 2026-07-31.",
+      "type": "Maintenance",
+      "priority": "Medium",
+      "relatedModule": "MaintenanceBill",
+      "relatedId": "bill_ftuklroto",
+      "status": "Unread",
+      "createdAt": "2026-07-16T05:49:12.064Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T05:49:12.069Z"
+    },
+    {
+      "_id": "notif_e1zdomx7x",
+      "userId": "hu3lwlazr",
+      "title": "New Bill Generated: BILL-202607-173217",
+      "message": "A new maintenance bill for July 2026 has been generated for INR 1450. Due: 2026-07-31.",
+      "type": "Maintenance",
+      "priority": "Medium",
+      "relatedModule": "MaintenanceBill",
+      "relatedId": "bill_ftuklroto",
+      "status": "Read",
+      "createdAt": "2026-07-16T05:49:12.072Z",
+      "readAt": "2026-07-16T05:58:55.940Z",
+      "updatedAt": "2026-07-16T05:58:55.940Z"
+    },
+    {
+      "_id": "notif_lssj09nkr",
+      "userId": "gs2e36xmg",
+      "title": "Guest Checked In: rohan",
+      "message": "Your expected guest rohan has checked into the society at 11:23:42 am.",
+      "type": "Visitor",
+      "priority": "High",
+      "relatedModule": "Visitor",
+      "relatedId": "1232f1vno",
+      "status": "Unread",
+      "createdAt": "2026-07-16T05:53:42.760Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T05:53:42.761Z"
+    },
+    {
+      "_id": "notif_x03m7m1yi",
+      "userId": "hu3lwlazr",
+      "title": "Guest Checked In: rohan",
+      "message": "Your expected guest rohan has checked into the society at 11:23:42 am.",
+      "type": "Visitor",
+      "priority": "High",
+      "relatedModule": "Visitor",
+      "relatedId": "1232f1vno",
+      "status": "Unread",
+      "createdAt": "2026-07-16T05:53:42.762Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T05:53:42.764Z"
+    },
+    {
+      "_id": "notif_i6ife0m9o",
+      "userId": "hu3lwlazr",
+      "title": "Visitor Checked In: prathamesh",
+      "message": "A walk-in visitor prathamesh (Guest) has checked in for your flat at 11:24:09 am.",
+      "type": "Visitor",
+      "priority": "High",
+      "relatedModule": "Visitor",
+      "relatedId": "aoj1prld2",
+      "status": "Unread",
+      "createdAt": "2026-07-16T05:54:09.966Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T05:54:09.968Z"
+    },
+    {
+      "_id": "notif_5d0pxe9s6",
+      "userId": "gs2e36xmg",
+      "title": "Visitor Checked In: prathamesh",
+      "message": "A walk-in visitor prathamesh (Guest) has checked in for your flat at 11:24:09 am.",
+      "type": "Visitor",
+      "priority": "High",
+      "relatedModule": "Visitor",
+      "relatedId": "aoj1prld2",
+      "status": "Unread",
+      "createdAt": "2026-07-16T05:54:09.969Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T05:54:09.971Z"
+    },
+    {
+      "_id": "notif_o0br56846",
+      "userId": "hu3lwlazr",
+      "title": "New Announcement: Ganesg UTsav",
+      "message": "ganesg utsav celebration",
+      "type": "Notice",
+      "priority": "Medium",
+      "relatedModule": "Notice",
+      "relatedId": "notice_gk96e5eal",
+      "status": "Unread",
+      "createdAt": "2026-07-16T06:00:37.142Z",
+      "readAt": null,
+      "updatedAt": "2026-07-16T06:00:37.145Z"
+    }
+  ],
+  "audit_logs": []
+}

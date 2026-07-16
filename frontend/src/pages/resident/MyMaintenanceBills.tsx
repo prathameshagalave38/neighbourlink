@@ -67,7 +67,7 @@ export const MyMaintenanceBills: React.FC = () => {
   const fetchMyBills = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/maintenance-bills", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
@@ -99,7 +99,7 @@ export const MyMaintenanceBills: React.FC = () => {
     if (bill.status === "Paid" || bill.paidAmount > 0) {
       setIsReceiptLoading(true);
       try {
-        const res = await fetch(`/api/v1/society-management/maintenance-bills/${bill._id}/receipt`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/${bill._id}/receipt`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
@@ -146,7 +146,7 @@ export const MyMaintenanceBills: React.FC = () => {
     await sleep(600);
 
     try {
-      const res = await fetch(`/api/v1/society-management/maintenance-bills/${checkoutBill._id}/pay`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills/${checkoutBill._id}/pay`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

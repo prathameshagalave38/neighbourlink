@@ -76,9 +76,9 @@ export const ResidentsSetup: React.FC = () => {
 
       // Parallel fetch for residents, buildings, and flats
       const [residentsRes, buildingsRes, flatsRes] = await Promise.all([
-        fetch("/api/v1/society-management/residents", { headers }),
-        fetch("/api/v1/society-management/buildings", { headers }),
-        fetch("/api/v1/society-management/flats", { headers })
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers })
       ]);
 
       const residentsData = await residentsRes.json();
@@ -156,7 +156,7 @@ export const ResidentsSetup: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`/api/v1/society-management/residents/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

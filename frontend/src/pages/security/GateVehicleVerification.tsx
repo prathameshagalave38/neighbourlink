@@ -40,7 +40,7 @@ export const GateVehicleVerification: React.FC = () => {
   const fetchBlacklist = async () => {
     setIsBlacklistLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/vehicles/blacklist", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/vehicles/blacklist`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -72,7 +72,7 @@ export const GateVehicleVerification: React.FC = () => {
     setVerificationResult(null);
     try {
       const plate = queryPlate.trim().toUpperCase();
-      const res = await fetch(`/api/v1/society-management/vehicles/verify?vehicleNumber=${encodeURIComponent(plate)}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/vehicles/verify?vehicleNumber=${encodeURIComponent(plate)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -106,7 +106,7 @@ export const GateVehicleVerification: React.FC = () => {
 
     setIsBlacklistSubmitLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/vehicles/blacklist", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/vehicles/blacklist`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +141,7 @@ export const GateVehicleVerification: React.FC = () => {
     if (!window.confirm("Are you sure you want to clear this vehicle from blacklist files?")) return;
 
     try {
-      const res = await fetch(`/api/v1/society-management/vehicles/blacklist/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/vehicles/blacklist/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

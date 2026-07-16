@@ -52,7 +52,7 @@ export const MyExpectedVisitors: React.FC = () => {
   const fetchMyVisitors = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/visitors", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/visitors`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -105,7 +105,7 @@ export const MyExpectedVisitors: React.FC = () => {
 
     setIsSubmitLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/visitors", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/visitors`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +143,7 @@ export const MyExpectedVisitors: React.FC = () => {
     if (!window.confirm("Are you sure you want to cancel this visitor's pre-approval? This will deactivate their gate passcode.")) return;
 
     try {
-      const res = await fetch(`/api/v1/society-management/visitors/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/visitors/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

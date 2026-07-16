@@ -43,7 +43,7 @@ export const NotificationCenter: React.FC = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("nl_token");
-      const res = await fetch("/api/v1/society-management/notifications", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -69,7 +69,7 @@ export const NotificationCenter: React.FC = () => {
   const markAsRead = async (id: string) => {
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch(`/api/v1/society-management/notifications/${id}/read`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications/${id}/read`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`
@@ -90,7 +90,7 @@ export const NotificationCenter: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch("/api/v1/society-management/notifications/read-all", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications/read-all`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -108,7 +108,7 @@ export const NotificationCenter: React.FC = () => {
   const deleteNotification = async (id: string) => {
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch(`/api/v1/society-management/notifications/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
@@ -128,7 +128,7 @@ export const NotificationCenter: React.FC = () => {
 
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch("/api/v1/society-management/notifications", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`

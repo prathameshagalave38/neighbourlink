@@ -32,7 +32,7 @@ export const SocietySetup: React.FC = () => {
   const fetchSociety = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -74,7 +74,7 @@ export const SocietySetup: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const res = await fetch("/api/v1/society-management", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

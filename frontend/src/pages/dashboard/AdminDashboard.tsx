@@ -19,19 +19,19 @@ export const AdminDashboard: React.FC = () => {
         const headers = { "Authorization": `Bearer ${token}` };
         
         // Fetch buildings
-        const bRes = await fetch("/api/v1/society-management/buildings", { headers });
+        const bRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers });
         const bData = await bRes.json();
         
         // Fetch residents
-        const rRes = await fetch("/api/v1/society-management/residents", { headers });
+        const rRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents`, { headers });
         const rData = await rRes.json();
         
         // Fetch complaints
-        const cRes = await fetch("/api/v1/society-management/complaints", { headers });
+        const cRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints`, { headers });
         const cData = await cRes.json();
         
         // Fetch maintenance bills
-        const mRes = await fetch("/api/v1/society-management/maintenance-bills", { headers });
+        const mRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills`, { headers });
         const mData = await mRes.json();
 
         const unpaid = (mData.bills || []).filter((b: any) => b.status !== "Paid");

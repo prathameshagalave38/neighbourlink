@@ -62,7 +62,7 @@ export const NoticeBoard: React.FC = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("nl_token");
-      const res = await fetch("/api/v1/society-management/notices", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notices`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -157,7 +157,7 @@ export const NoticeBoard: React.FC = () => {
 
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch(`/api/v1/society-management/notices/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notices/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
@@ -179,7 +179,7 @@ export const NoticeBoard: React.FC = () => {
     try {
       const token = localStorage.getItem("nl_token");
       const newStatus = notice.status === "Published" ? "Draft" : "Published";
-      const res = await fetch(`/api/v1/society-management/notices/${notice._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notices/${notice._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

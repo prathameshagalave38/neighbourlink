@@ -60,9 +60,9 @@ export const SecurityVisitorGateLogs: React.FC = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [visitorRes, flatRes, buildingRes] = await Promise.all([
-        fetch("/api/v1/society-management/visitors", { headers }),
-        fetch("/api/v1/society-management/flats", { headers }),
-        fetch("/api/v1/society-management/buildings", { headers })
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/visitors`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers })
       ]);
 
       const visitorData = await visitorRes.json();
@@ -102,7 +102,7 @@ export const SecurityVisitorGateLogs: React.FC = () => {
 
     setIsValidating(true);
     try {
-      const res = await fetch("/api/v1/society-management/gate-logs/check-in", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/gate-logs/check-in`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +138,7 @@ export const SecurityVisitorGateLogs: React.FC = () => {
 
     setIsSubmitLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/gate-logs/check-in", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/gate-logs/check-in`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,7 +183,7 @@ export const SecurityVisitorGateLogs: React.FC = () => {
   // Check out action
   const handleCheckOut = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/society-management/gate-logs/${id}/check-out`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/gate-logs/${id}/check-out`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`

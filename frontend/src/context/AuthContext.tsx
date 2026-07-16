@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (storedToken) {
           // Verify with the backend me endpoint
-          const res = await fetch("/api/v1/auth/me", {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/auth/me`, {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${storedToken}`,

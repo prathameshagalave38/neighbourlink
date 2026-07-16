@@ -19,7 +19,7 @@ export const MyFlatInfo: React.FC = () => {
   const fetchMyFlatInfo = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/residents/me", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents/me`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();

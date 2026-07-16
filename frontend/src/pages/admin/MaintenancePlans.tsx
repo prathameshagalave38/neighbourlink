@@ -48,7 +48,7 @@ export const MaintenancePlans: React.FC = () => {
   const fetchPlans = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/maintenance-plans", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-plans`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
@@ -170,7 +170,7 @@ export const MaintenancePlans: React.FC = () => {
     if (!window.confirm("Are you sure you want to delete this maintenance plan?")) return;
 
     try {
-      const res = await fetch(`/api/v1/society-management/maintenance-plans/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-plans/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

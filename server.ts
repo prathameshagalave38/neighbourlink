@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
@@ -15,6 +16,12 @@ async function bootstrap() {
 
   // JSON Body parsing middleware
   app.use(express.json());
+
+  // CORS middleware for separate frontend/backend deployments
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || "*",
+    credentials: true,
+  }));
 
   // Test Database connectivity on server bootup
   try {

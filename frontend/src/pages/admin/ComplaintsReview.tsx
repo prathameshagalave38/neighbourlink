@@ -69,9 +69,9 @@ export const ComplaintsReview: React.FC = () => {
       const headers = { Authorization: `Bearer ${token}` };
       
       const [complaintsRes, usersRes, buildingsRes] = await Promise.all([
-        fetch("/api/v1/society-management/complaints", { headers }),
-        fetch("/api/v1/society-management/users", { headers }),
-        fetch("/api/v1/society-management/buildings", { headers })
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/users`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers })
       ]);
 
       const complaintsData = await complaintsRes.json();
@@ -137,7 +137,7 @@ export const ComplaintsReview: React.FC = () => {
         notes = notesParts.join(", ") || "Ticket reviewed by admin.";
       }
 
-      const res = await fetch(`/api/v1/society-management/complaints/${selectedComplaint._id}/status`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints/${selectedComplaint._id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ export const ComplaintsReview: React.FC = () => {
   const handleAssignToMe = async (complaint: any) => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`/api/v1/society-management/complaints/${complaint._id}/status`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints/${complaint._id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -42,7 +42,7 @@ export const Register: React.FC = () => {
     }
 
     try {
-      const res = await fetch("/api/v1/auth/register", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

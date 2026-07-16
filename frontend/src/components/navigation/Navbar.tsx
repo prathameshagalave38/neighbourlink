@@ -12,7 +12,7 @@ export const Navbar: React.FC = () => {
     if (!user) return;
     try {
       const token = localStorage.getItem("nl_token");
-      const res = await fetch("/api/v1/society-management/notifications", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

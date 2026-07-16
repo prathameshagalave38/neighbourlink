@@ -16,7 +16,7 @@ export const ResidentDashboard: React.FC = () => {
         const headers = { "Authorization": `Bearer ${token}` };
 
         // 1. Fetch Flat Info
-        const res = await fetch("/api/v1/society-management/residents/me", { headers });
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents/me`, { headers });
         const data = await res.json();
         if (data.success && data.flat) {
           setFlat(data.flat);
@@ -24,7 +24,7 @@ export const ResidentDashboard: React.FC = () => {
         }
 
         // 2. Fetch Complaints
-        const compRes = await fetch("/api/v1/society-management/complaints/me", { headers });
+        const compRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints/me`, { headers });
         const compData = await compRes.json();
         if (compData.success && Array.isArray(compData.complaints)) {
           const openCount = compData.complaints.filter((c: any) => c.status !== "Resolved").length;
@@ -32,7 +32,7 @@ export const ResidentDashboard: React.FC = () => {
         }
 
         // 3. Fetch Maintenance Bills
-        const billsRes = await fetch("/api/v1/society-management/maintenance-bills", { headers });
+        const billsRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/maintenance-bills`, { headers });
         const billsData = await billsRes.json();
         if (billsData.success && Array.isArray(billsData.bills)) {
           const unpaidSum = billsData.bills

@@ -46,10 +46,10 @@ export const FlatsSetup: React.FC = () => {
 
       // Parallel fetch for flats, buildings, users, and residents
       const [flatsRes, buildingsRes, usersRes, residentsRes] = await Promise.all([
-        fetch("/api/v1/society-management/flats", { headers }),
-        fetch("/api/v1/society-management/buildings", { headers }),
-        fetch("/api/v1/society-management/users", { headers }),
-        fetch("/api/v1/society-management/residents", { headers })
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/buildings`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/users`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/residents`, { headers })
       ]);
 
       const flatsData = await flatsRes.json();
@@ -160,7 +160,7 @@ export const FlatsSetup: React.FC = () => {
         setIsFormOpen(false);
         // Refresh flat records
         const headers = { "Authorization": `Bearer ${token}` };
-        const flatsRes = await fetch("/api/v1/society-management/flats", { headers });
+        const flatsRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers });
         const flatsData = await flatsRes.json();
         if (flatsData.success) setFlats(flatsData.flats || []);
       } else {
@@ -179,7 +179,7 @@ export const FlatsSetup: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`/api/v1/society-management/flats/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats/${id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -190,7 +190,7 @@ export const FlatsSetup: React.FC = () => {
         toast.success(data.message || "Flat configuration deleted successfully.");
         // Refresh
         const headers = { "Authorization": `Bearer ${token}` };
-        const flatsRes = await fetch("/api/v1/society-management/flats", { headers });
+        const flatsRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/flats`, { headers });
         const flatsData = await flatsRes.json();
         if (flatsData.success) setFlats(flatsData.flats || []);
       } else {

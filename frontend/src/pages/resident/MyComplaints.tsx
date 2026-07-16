@@ -65,7 +65,7 @@ export const MyComplaints: React.FC = () => {
   const fetchComplaints = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/society-management/complaints/me", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints/me`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -99,7 +99,7 @@ export const MyComplaints: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/v1/society-management/complaints", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +138,7 @@ export const MyComplaints: React.FC = () => {
     
     setIsUpdatingStatus(true);
     try {
-      const res = await fetch(`/api/v1/society-management/complaints/${selectedComplaint._id}/status`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/society-management/complaints/${selectedComplaint._id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
