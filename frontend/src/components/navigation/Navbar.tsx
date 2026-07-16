@@ -43,11 +43,11 @@ export const Navbar: React.FC = () => {
   return (
     <nav id="app-navbar" className="fixed top-0 z-30 flex items-center justify-between w-full h-16 px-6 border-b border-gray-200 bg-white">
       {/* Branding & Logo */}
-      <Link id="nav-brand" to="/" className="flex items-center gap-2">
+      <Link id="nav-brand" to="/" className="flex items-center gap-2 relative h-full w-[200px]">
         <img 
           src="/logo.png" 
           alt="NeighbourLink Logo" 
-          className="h-10 w-auto mix-blend-multiply object-contain" 
+          className="h-[100px] w-auto object-contain absolute left-0 top-1/2 -translate-y-1/2" 
         />
       </Link>
 
